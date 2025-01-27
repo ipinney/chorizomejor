@@ -1,0 +1,134 @@
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  background: #f9f9f9;
+}
+
+header {
+  background: #fbc02d; /* Taco Shell Yellow */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+}
+
+header h1 {
+  font-family: 'Ranchers', cursive;
+  margin: 0;
+  color: #5d4037; /* Brownish for Western vibe */
+}
+
+#auth-section button {
+  background: #5d4037;
+  color: #fff;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+main {
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+/* Map Container */
+#map {
+  flex: 1;
+  min-width: 50%;
+}
+
+/* Places List */
+#places-list {
+  width: 300px;
+  overflow-y: auto;
+  background: #fff;
+  padding: 10px;
+}
+
+#places-list h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-family: 'Ranchers', cursive;
+}
+
+#places-ul {
+  list-style: none;
+  padding: 0;
+}
+
+#places-ul li {
+  margin-bottom: 10px;
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Add Place Button */
+#btn-add-place {
+  margin-top: 10px;
+  background: #ef5350;
+  color: #fff;
+  padding: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Modals */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.3);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  border-radius: 4px;
+}
+
+.close {
+  float: right;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Place Details */
+#place-details {
+  position: absolute;
+  right: 10px;
+  top: 70px;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 15px;
+  width: 250px;
+  z-index: 998;
+}
+
+#reviews-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+#reviews-list li {
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
