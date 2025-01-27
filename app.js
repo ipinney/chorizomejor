@@ -1,10 +1,4 @@
-/*********************************
- * 1. Firebase Configuration
- ********************************/
-// 1. Create a Firebase project at https://firebase.google.com/
-// 2. Enable Email/Password Auth (and optional Google/Facebook if desired)
-// 3. Enable Cloud Firestore or Realtime Database
-// 4. Paste your config here:
+
 const firebaseConfig = {
   apiKey: "YOUR_FIREBASE_API_KEY",
   authDomain: "YOUR_FIREBASE_PROJECT_ID.firebaseapp.com",
@@ -14,9 +8,7 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-// If using Firestore:
 const db = firebase.firestore();
 const storage = firebase.storage();
 
