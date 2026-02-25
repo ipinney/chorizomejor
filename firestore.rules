@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- Users ---
+    match /users/{userId} {
+      // Anyone can read user profiles
+      allow read: if true;
+
+      // Users can create their own profile on signup
+      allow create: if isOwner(userId);
+
+      // Users can update their own profile
+      allow update: if isOwner(userId);
+
+      // No deleting user profiles
+      allow delete: if false;
+    }
+
+    // --- Places (taco spots) ---
+    match /places/{placeId} {
+      // Anyone can read places
+      allow read: if true;
+
+      // Signed-in users can add places
+      allow create: if isSignedIn();
+
+      // Signed-in users can update places (for aggregate updates from reviews)
+      allow update: if isSignedIn();
+
+      // No deleting places
+      allow delete: if false;
+    }
+
+    // --- Reviews ---
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+
+      // Signed-in users can create reviews with their own userId
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      // Signed-in users can update reviews (for likes, comment counts)
+      allow update: if isSignedIn();
+
+      // Only the review author can delete their own review
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      // --- Comments (subcollection of reviews) ---
+      match /comments/{commentId} {
+        allow read: if true;
+
+        allow create: if isSignedIn()
+          && request.resource.data.userId == request.auth.uid;
+
+        allow delete: if isSignedIn()
+          && resource.data.userId == request.auth.uid;
+
+        allow update: if false;
+      }
+    }
+
+    // --- Follows ---
+    match /follows/{followId} {
+      allow read: if true;
+
+      // Only the follower can create a follow relationship
+      allow create: if isSignedIn()
+        && request.resource.data.followerId == request.auth.uid;
+
+      // Only the follower can unfollow
+      allow delete: if isSignedIn()
+        && resource.data.followerId == request.auth.uid;
+
+      allow update: if false;
+    }
+  }
+}
