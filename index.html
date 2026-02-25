@@ -1,139 +1,517 @@
-
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDP4onqsMuQjaJQQtWPKxjM1EWXm5Aa8Oc",
-  authDomain: "chorizomejor.firebaseapp.com",
-  projectId: "chorizomejor",
-  storageBucket: "chorizomejor.firebasestorage.app",
-  messagingSenderId: "42155167020",
-  appId: "1:42155167020:web:fb8f4964b051af6e2cb089",
-  measurementId: "G-BVDSY8FGFB"
-};
-
-rules_version = '2';
-
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
-  }
-}
-
-rules_version = '2';
-
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
-  }
-}
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <title>Chorizo Mejor</title>
-  <!-- Link to CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Chorizo Mejor - Houston's #1 Breakfast Taco Rating App. Rate, review, and discover the best tacos in H-Town." />
+  <meta name="theme-color" content="#D84315" />
+  <title>Chorizo Mejor - Houston's Best Breakfast Tacos</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Google Fonts Example (Ranchers for header, Roboto for body) -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Ranchers&family=Roboto:wght@400;700&display=swap"
-    rel="stylesheet"
-  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ranchers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
 </head>
 <body>
-  <header>
-    <h1>Chorizo Mejor</h1>
-    <div id="auth-section">
-      <!-- Auth Buttons go here (app.js will populate) -->
+
+  <!-- ===================== TOP NAV ===================== -->
+  <header id="top-bar">
+    <div class="top-bar-inner">
+      <div class="logo" onclick="navigate('feed')">
+        <span class="logo-icon">🌮</span>
+        <span class="logo-text">Chorizo Mejor</span>
+      </div>
+      <div id="header-actions">
+        <button class="btn-icon" onclick="toggleSearch()" title="Search">
+          <span class="material-icons-round">search</span>
+        </button>
+        <div id="auth-buttons"></div>
+      </div>
+    </div>
+    <div id="search-bar" class="search-bar hidden">
+      <span class="material-icons-round">search</span>
+      <input type="text" id="search-input" placeholder="Search taco spots, reviewers..." oninput="handleSearch(this.value)" />
+      <button class="btn-icon" onclick="toggleSearch()">
+        <span class="material-icons-round">close</span>
+      </button>
     </div>
   </header>
 
-  <main>
-    <!-- Map Container -->
-    <div id="map"></div>
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main id="app-content">
 
-    <!-- Taco Places List -->
-    <div id="places-list">
-      <h2>All Taco Places</h2>
-      <ul id="places-ul"></ul>
-      <button id="btn-add-place">+ Add New Taco Place</button>
-    </div>
-
-    <!-- Add Place Form (hidden by default) -->
-    <div id="add-place-form" class="modal hidden">
-      <div class="modal-content">
-        <span id="close-add-place" class="close">&times;</span>
-        <h3>Add a Taco Place</h3>
-        <label for="place-name">Name</label>
-        <input type="text" id="place-name" />
-        
-        <label for="place-address">Address</label>
-        <input type="text" id="place-address" />
-        
-        <label for="place-city">City</label>
-        <input type="text" id="place-city" />
-        
-        <button id="place-submit">Submit</button>
+    <!-- ===== FEED VIEW ===== -->
+    <section id="view-feed" class="view">
+      <div class="feed-header">
+        <h2>What's Hot in H-Town</h2>
+        <div class="feed-tabs">
+          <button class="tab active" data-tab="following" onclick="switchFeedTab(this)">Following</button>
+          <button class="tab" data-tab="trending" onclick="switchFeedTab(this)">Trending</button>
+          <button class="tab" data-tab="nearby" onclick="switchFeedTab(this)">Near Me</button>
+        </div>
       </div>
-    </div>
-
-    <!-- Selected Place Details -->
-    <div id="place-details" class="hidden">
-      <h2 id="place-title"></h2>
-      <p id="place-address-display"></p>
-      <p>Average Tortilla: <span id="avg-tortilla"></span></p>
-      <p>Average Chorizo: <span id="avg-chorizo"></span></p>
-      <button id="btn-add-review">+ Add Review</button>
-
-      <!-- Reviews List -->
-      <ul id="reviews-list"></ul>
-    </div>
-
-    <!-- Add Review Form (hidden by default) -->
-    <div id="add-review-form" class="modal hidden">
-      <div class="modal-content">
-        <span id="close-add-review" class="close">&times;</span>
-        <h3>Add a Review</h3>
-        <label for="tortilla-rating">Tortilla (1-10)</label>
-        <input type="number" id="tortilla-rating" min="1" max="10" />
-        
-        <label for="chorizo-rating">Chorizo (1-10)</label>
-        <input type="number" id="chorizo-rating" min="1" max="10" />
-        
-        <label for="review-photo">Photo</label>
-        <input type="file" id="review-photo" accept="image/*" />
-        
-        <button id="review-submit">Submit Review</button>
+      <div id="feed-list" class="card-list"></div>
+      <div id="feed-empty" class="empty-state hidden">
+        <span class="empty-icon">🌮</span>
+        <h3>No tacos yet!</h3>
+        <p>Follow some reviewers or post your first taco review to get started.</p>
       </div>
-    </div>
+    </section>
+
+    <!-- ===== EXPLORE / MAP VIEW ===== -->
+    <section id="view-explore" class="view hidden">
+      <div class="explore-header">
+        <h2>Explore Houston</h2>
+        <div class="explore-filters">
+          <select id="filter-neighborhood" onchange="filterPlaces()">
+            <option value="">All Neighborhoods</option>
+            <option value="heights">The Heights</option>
+            <option value="montrose">Montrose</option>
+            <option value="east-end">East End</option>
+            <option value="midtown">Midtown</option>
+            <option value="eado">EaDo</option>
+            <option value="washington-ave">Washington Ave</option>
+            <option value="memorial">Memorial</option>
+            <option value="bellaire">Bellaire</option>
+            <option value="spring-branch">Spring Branch</option>
+            <option value="katy">Katy</option>
+            <option value="sugar-land">Sugar Land</option>
+            <option value="pasadena">Pasadena</option>
+          </select>
+          <select id="filter-sort" onchange="filterPlaces()">
+            <option value="rating">Top Rated</option>
+            <option value="reviews">Most Reviewed</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div id="places-grid" class="card-list"></div>
+    </section>
+
+    <!-- ===== LEADERBOARD VIEW ===== -->
+    <section id="view-leaderboard" class="view hidden">
+      <div class="leaderboard-header">
+        <h2>🏆 Leaderboard</h2>
+        <div class="leaderboard-tabs">
+          <button class="tab active" data-tab="overall" onclick="switchLeaderboardTab(this)">Overall</button>
+          <button class="tab" data-tab="tortilla" onclick="switchLeaderboardTab(this)">Tortilla</button>
+          <button class="tab" data-tab="protein" onclick="switchLeaderboardTab(this)">Protein</button>
+          <button class="tab" data-tab="salsa" onclick="switchLeaderboardTab(this)">Salsa</button>
+          <button class="tab" data-tab="value" onclick="switchLeaderboardTab(this)">Value</button>
+        </div>
+        <select id="leaderboard-neighborhood" onchange="loadLeaderboard()">
+          <option value="">All Houston</option>
+          <option value="heights">The Heights</option>
+          <option value="montrose">Montrose</option>
+          <option value="east-end">East End</option>
+          <option value="midtown">Midtown</option>
+          <option value="eado">EaDo</option>
+          <option value="washington-ave">Washington Ave</option>
+          <option value="spring-branch">Spring Branch</option>
+        </select>
+      </div>
+      <div id="leaderboard-list"></div>
+      <div id="leaderboard-month" class="leaderboard-section">
+        <h3>📅 February 2026 Top 5</h3>
+        <div id="monthly-leaders"></div>
+      </div>
+    </section>
+
+    <!-- ===== TACO OF THE YEAR VIEW ===== -->
+    <section id="view-toty" class="view hidden">
+      <div class="toty-hero">
+        <div class="toty-hero-content">
+          <h2>🏅 2026 Taco of the Year</h2>
+          <p class="toty-subtitle">Houston's most prestigious breakfast taco award</p>
+          <div class="toty-countdown" id="toty-countdown"></div>
+        </div>
+      </div>
+
+      <div class="toty-categories">
+        <h3>Award Categories</h3>
+        <div class="toty-category-grid">
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">🌮</span>
+            <h4>Best Overall Taco</h4>
+            <p>The total package - tortilla, protein, salsa, everything.</p>
+            <div id="toty-overall-leader" class="toty-leader"></div>
+          </div>
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">🫓</span>
+            <h4>Best Tortilla</h4>
+            <p>Flour or corn, handmade perfection.</p>
+            <div id="toty-tortilla-leader" class="toty-leader"></div>
+          </div>
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">🥩</span>
+            <h4>Best Protein</h4>
+            <p>Chorizo, barbacoa, carne guisada, or beyond.</p>
+            <div id="toty-protein-leader" class="toty-leader"></div>
+          </div>
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">🌶️</span>
+            <h4>Best Salsa</h4>
+            <p>The heat, the flavor, the kick.</p>
+            <div id="toty-salsa-leader" class="toty-leader"></div>
+          </div>
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">💰</span>
+            <h4>Best Value</h4>
+            <p>Maximum taco per dollar.</p>
+            <div id="toty-value-leader" class="toty-leader"></div>
+          </div>
+          <div class="toty-category-card">
+            <span class="toty-cat-icon">🆕</span>
+            <h4>Best Newcomer</h4>
+            <p>Opened in 2026 and already making waves.</p>
+            <div id="toty-newcomer-leader" class="toty-leader"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toty-timeline">
+        <h3>Road to Taco of the Year</h3>
+        <div class="timeline">
+          <div class="timeline-item active">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong>Jan - Mar: Open Voting</strong>
+              <p>Rate every taco you eat. Every review counts.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong>Apr - Jun: Spring Semifinals</strong>
+              <p>Top 20 in each category announced.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong>Jul - Sep: Summer Showdown</strong>
+              <p>Top 10 finalists. Community taco crawls.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong>Oct - Nov: Final Voting</strong>
+              <p>Last chance to cast your votes.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong>December 2026: Awards Ceremony 🎉</strong>
+              <p>The 2026 Taco of the Year is crowned.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PROFILE VIEW ===== -->
+    <section id="view-profile" class="view hidden">
+      <div class="profile-header-section">
+        <div class="profile-avatar" id="profile-avatar">🌮</div>
+        <h2 id="profile-name">Taco Lover</h2>
+        <p id="profile-handle" class="handle">@tacolover</p>
+        <div class="profile-stats">
+          <div class="stat">
+            <strong id="stat-reviews">0</strong>
+            <span>Reviews</span>
+          </div>
+          <div class="stat">
+            <strong id="stat-followers">0</strong>
+            <span>Followers</span>
+          </div>
+          <div class="stat">
+            <strong id="stat-following">0</strong>
+            <span>Following</span>
+          </div>
+        </div>
+        <div id="profile-badges" class="badges"></div>
+        <button id="profile-action-btn" class="btn-primary hidden">Follow</button>
+      </div>
+      <div class="profile-tabs">
+        <button class="tab active" data-tab="reviews" onclick="switchProfileTab(this)">Reviews</button>
+        <button class="tab" data-tab="favorites" onclick="switchProfileTab(this)">Favorites</button>
+        <button class="tab" data-tab="lists" onclick="switchProfileTab(this)">Taco Trails</button>
+      </div>
+      <div id="profile-content" class="card-list"></div>
+    </section>
+
+    <!-- ===== PLACE DETAIL VIEW ===== -->
+    <section id="view-place" class="view hidden">
+      <button class="btn-back" onclick="history.back()">
+        <span class="material-icons-round">arrow_back</span> Back
+      </button>
+      <div class="place-hero">
+        <div id="place-photo-banner" class="place-banner"></div>
+        <div class="place-hero-info">
+          <h2 id="place-name"></h2>
+          <p id="place-address-detail" class="place-address"></p>
+          <p id="place-neighborhood-detail" class="place-neighborhood"></p>
+          <div class="place-meta">
+            <span id="place-review-count"></span>
+            <span id="place-wait-pct"></span>
+          </div>
+        </div>
+      </div>
+      <div class="place-ratings-summary" id="place-ratings-summary">
+        <div class="rating-bar">
+          <label>Overall</label>
+          <div class="bar-track"><div class="bar-fill" id="bar-overall"></div></div>
+          <span class="bar-score" id="score-overall">-</span>
+        </div>
+        <div class="rating-bar">
+          <label>Tortilla</label>
+          <div class="bar-track"><div class="bar-fill" id="bar-tortilla"></div></div>
+          <span class="bar-score" id="score-tortilla">-</span>
+        </div>
+        <div class="rating-bar">
+          <label>Protein</label>
+          <div class="bar-track"><div class="bar-fill" id="bar-protein"></div></div>
+          <span class="bar-score" id="score-protein">-</span>
+        </div>
+        <div class="rating-bar">
+          <label>Salsa</label>
+          <div class="bar-track"><div class="bar-fill" id="bar-salsa"></div></div>
+          <span class="bar-score" id="score-salsa">-</span>
+        </div>
+        <div class="rating-bar">
+          <label>Value</label>
+          <div class="bar-track"><div class="bar-fill" id="bar-value"></div></div>
+          <span class="bar-score" id="score-value">-</span>
+        </div>
+      </div>
+      <div class="place-tags" id="place-tags"></div>
+      <button id="btn-add-review" class="btn-primary" onclick="openReviewModal()">
+        <span class="material-icons-round">rate_review</span> Add Review
+      </button>
+      <h3>Reviews</h3>
+      <div id="place-reviews" class="card-list"></div>
+    </section>
+
+    <!-- ===== AUTH VIEW ===== -->
+    <section id="view-auth" class="view hidden">
+      <div class="auth-container">
+        <div class="auth-hero">
+          <span class="auth-logo">🌮</span>
+          <h2>Join Chorizo Mejor</h2>
+          <p>Houston's breakfast taco community</p>
+        </div>
+        <form id="auth-form" onsubmit="handleAuth(event)">
+          <div id="auth-name-group" class="form-group hidden">
+            <label for="auth-displayname">Display Name</label>
+            <input type="text" id="auth-displayname" placeholder="TacoKing713" />
+          </div>
+          <div class="form-group">
+            <label for="auth-email">Email</label>
+            <input type="email" id="auth-email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="auth-password">Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
+          </div>
+          <button type="submit" class="btn-primary btn-full" id="auth-submit-btn">Sign In</button>
+          <p class="auth-toggle">
+            <span id="auth-toggle-text">Don't have an account?</span>
+            <a href="#" onclick="toggleAuthMode(event);" id="auth-toggle-link">Sign Up</a>
+          </p>
+        </form>
+      </div>
+    </section>
+
   </main>
 
-  <!-- Scripts -->
+  <!-- ===================== ADD REVIEW MODAL ===================== -->
+  <div id="review-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>Rate This Taco</h3>
+        <button class="btn-icon" onclick="closeReviewModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <form id="review-form" onsubmit="submitReview(event)">
+        <div class="form-group">
+          <label>What did you order?</label>
+          <div class="tag-selector" id="taco-type-tags">
+            <button type="button" class="tag-btn" data-tag="chorizo" onclick="toggleTag(this)">Chorizo</button>
+            <button type="button" class="tag-btn" data-tag="barbacoa" onclick="toggleTag(this)">Barbacoa</button>
+            <button type="button" class="tag-btn" data-tag="bean-cheese" onclick="toggleTag(this)">Bean &amp; Cheese</button>
+            <button type="button" class="tag-btn" data-tag="carne-guisada" onclick="toggleTag(this)">Carne Guisada</button>
+            <button type="button" class="tag-btn" data-tag="al-pastor" onclick="toggleTag(this)">Al Pastor</button>
+            <button type="button" class="tag-btn" data-tag="egg-cheese" onclick="toggleTag(this)">Egg &amp; Cheese</button>
+            <button type="button" class="tag-btn" data-tag="chicharron" onclick="toggleTag(this)">Chicharrón</button>
+            <button type="button" class="tag-btn" data-tag="migas" onclick="toggleTag(this)">Migas</button>
+            <button type="button" class="tag-btn" data-tag="potato-egg" onclick="toggleTag(this)">Potato &amp; Egg</button>
+            <button type="button" class="tag-btn" data-tag="other" onclick="toggleTag(this)">Other</button>
+          </div>
+        </div>
+        <div class="rating-inputs">
+          <div class="rating-group">
+            <label>Overall<span class="rating-val" id="val-overall">5</span></label>
+            <input type="range" min="1" max="10" value="5" id="rate-overall" oninput="updateRatingVal('overall', this.value)" />
+          </div>
+          <div class="rating-group">
+            <label>Tortilla<span class="rating-val" id="val-tortilla">5</span></label>
+            <input type="range" min="1" max="10" value="5" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value)" />
+          </div>
+          <div class="rating-group">
+            <label>Protein<span class="rating-val" id="val-protein">5</span></label>
+            <input type="range" min="1" max="10" value="5" id="rate-protein" oninput="updateRatingVal('protein', this.value)" />
+          </div>
+          <div class="rating-group">
+            <label>Salsa<span class="rating-val" id="val-salsa">5</span></label>
+            <input type="range" min="1" max="10" value="5" id="rate-salsa" oninput="updateRatingVal('salsa', this.value)" />
+          </div>
+          <div class="rating-group">
+            <label>Value<span class="rating-val" id="val-value">5</span></label>
+            <input type="range" min="1" max="10" value="5" id="rate-value" oninput="updateRatingVal('value', this.value)" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="review-text">Your thoughts</label>
+          <textarea id="review-text" rows="3" placeholder="The tortilla was warm and fresh, the chorizo had great spice..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Photo</label>
+          <div class="photo-upload" id="photo-upload-area" onclick="document.getElementById('review-photo').click()">
+            <span class="material-icons-round">add_a_photo</span>
+            <p>Tap to add a photo</p>
+            <img id="photo-preview" class="hidden" />
+          </div>
+          <input type="file" id="review-photo" accept="image/*" class="hidden" onchange="previewPhoto(this)" />
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="review-wait" />
+            Would you wait 30 min in line for this taco?
+          </label>
+        </div>
+        <button type="submit" class="btn-primary btn-full">Post Review</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== ADD PLACE MODAL ===================== -->
+  <div id="place-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add a Taco Spot</h3>
+        <button class="btn-icon" onclick="closePlaceModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <form id="place-form" onsubmit="submitPlace(event)">
+        <div class="form-group">
+          <label for="new-place-name">Name</label>
+          <input type="text" id="new-place-name" placeholder="Villa Arcos" required />
+        </div>
+        <div class="form-group">
+          <label for="new-place-address">Address</label>
+          <input type="text" id="new-place-address" placeholder="123 Navigation Blvd" required />
+        </div>
+        <div class="form-group">
+          <label for="new-place-neighborhood">Neighborhood</label>
+          <select id="new-place-neighborhood" required>
+            <option value="">Select...</option>
+            <option value="heights">The Heights</option>
+            <option value="montrose">Montrose</option>
+            <option value="east-end">East End</option>
+            <option value="midtown">Midtown</option>
+            <option value="eado">EaDo</option>
+            <option value="washington-ave">Washington Ave</option>
+            <option value="memorial">Memorial</option>
+            <option value="bellaire">Bellaire</option>
+            <option value="spring-branch">Spring Branch</option>
+            <option value="katy">Katy</option>
+            <option value="sugar-land">Sugar Land</option>
+            <option value="pasadena">Pasadena</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="new-place-type">Type</label>
+          <select id="new-place-type">
+            <option value="truck">Taco Truck</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="bakery">Bakery / Panaderia</option>
+            <option value="gas-station">Gas Station (IYKYK)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary btn-full">Add Spot</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== SHARE CARD MODAL ===================== -->
+  <div id="share-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Share This Review</h3>
+        <button class="btn-icon" onclick="closeShareModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div id="share-card" class="share-card">
+        <div class="share-card-header">
+          <span>🌮</span> Chorizo Mejor
+        </div>
+        <div class="share-card-body" id="share-card-body"></div>
+        <div class="share-card-footer">chorizomejor.com</div>
+      </div>
+      <div class="share-actions">
+        <button class="btn-secondary" onclick="copyShareLink()">
+          <span class="material-icons-round">link</span> Copy Link
+        </button>
+        <button class="btn-secondary" onclick="shareNative()">
+          <span class="material-icons-round">share</span> Share
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FAB (Add Review) ===================== -->
+  <button id="fab" class="fab" onclick="openAddFlow()" title="Add a taco review">
+    <span class="material-icons-round">add</span>
+  </button>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" onclick="navigate('feed')" data-view="feed">
+      <span class="material-icons-round">home</span>
+      <span>Feed</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('explore')" data-view="explore">
+      <span class="material-icons-round">explore</span>
+      <span>Explore</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('leaderboard')" data-view="leaderboard">
+      <span class="material-icons-round">leaderboard</span>
+      <span>Rankings</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('toty')" data-view="toty">
+      <span class="material-icons-round">emoji_events</span>
+      <span>TOTY</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('profile')" data-view="profile">
+      <span class="material-icons-round">person</span>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+  <!-- ===================== TOAST ===================== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ===================== SCRIPTS ===================== -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="app.js"></script>
-  <!-- Google Maps script (replace with your key) -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7I_q6mE91hpgHPwoxEUequj_mm7GIVq4"
-    async
-  ></script>
 </body>
 </html>
