@@ -1450,18 +1450,24 @@ function formatTag(tag) {
 
 function formatNeighborhood(code) {
   const names = {
-    'heights': 'The Heights',
-    'montrose': 'Montrose',
-    'east-end': 'East End',
-    'midtown': 'Midtown',
+    'downtown': 'Downtown',
     'eado': 'EaDo',
-    'washington-ave': 'Washington Ave',
-    'memorial': 'Memorial',
-    'bellaire': 'Bellaire',
-    'spring-branch': 'Spring Branch',
+    'east-end': 'East End',
+    'galleria': 'Galleria',
+    'heights': 'The Heights',
     'katy': 'Katy',
+    'memorial': 'Memorial',
+    'midtown': 'Midtown',
+    'montrose': 'Montrose',
+    'northside': 'Northside',
+    'pasadena': 'Pasadena',
+    'river-oaks': 'River Oaks',
+    'spring': 'Spring',
+    'spring-branch': 'Spring Branch',
     'sugar-land': 'Sugar Land',
-    'pasadena': 'Pasadena'
+    'third-ward': 'Third Ward',
+    'washington-ave': 'Washington Ave',
+    'bellaire': 'Bellaire'
   };
   return names[code] || code || '';
 }
