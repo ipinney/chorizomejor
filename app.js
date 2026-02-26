@@ -31,6 +31,52 @@ let leaderboardTab = 'overall';
 let profileTab = 'reviews';
 let selectedTags = [];
 
+// ===================== PWA =====================
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+
+// Capture the install prompt for later use
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show our custom install prompt after a short delay
+  setTimeout(() => {
+    const dismissed = sessionStorage.getItem('install-dismissed');
+    if (!dismissed) {
+      document.getElementById('install-prompt').classList.remove('hidden');
+    }
+  }, 3000);
+});
+
+function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      showToast('App installed!');
+    }
+    deferredInstallPrompt = null;
+    document.getElementById('install-prompt').classList.add('hidden');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('install-prompt').classList.add('hidden');
+  sessionStorage.setItem('install-dismissed', 'true');
+}
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-prompt').classList.add('hidden');
+  deferredInstallPrompt = null;
+});
+
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
@@ -193,6 +239,46 @@ async function signOut() {
   await auth.signOut();
   showToast('Signed out');
   navigate('feed');
+}
+
+// ===================== GOOGLE SIGN-IN =====================
+async function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user = result.user;
+    const isNew = result.additionalUserInfo?.isNewUser;
+
+    if (isNew) {
+      // Create user profile for first-time Google sign-in users
+      const name = user.displayName || user.email.split('@')[0];
+      await db.collection('users').doc(user.uid).set({
+        displayName: name,
+        email: user.email,
+        handle: '@' + name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        photoURL: user.photoURL || null,
+        reviewCount: 0,
+        followers: 0,
+        following: 0,
+        badges: [],
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('Welcome to Chorizo Mejor!');
+    } else {
+      // Update photo URL in case it changed
+      if (user.photoURL) {
+        await db.collection('users').doc(user.uid).update({
+          photoURL: user.photoURL
+        }).catch(() => {}); // Ignore if doc doesn't exist yet
+      }
+      showToast('Welcome back!');
+    }
+
+    navigate('feed');
+  } catch (err) {
+    if (err.code === 'auth/popup-closed-by-user') return;
+    showToast(err.message);
+  }
 }
 
 // ===================== FEED =====================
@@ -1057,6 +1143,16 @@ async function loadProfile(userId) {
       document.getElementById('stat-reviews').textContent = user.reviewCount || 0;
       document.getElementById('stat-followers').textContent = user.followers || 0;
       document.getElementById('stat-following').textContent = user.following || 0;
+
+      // Show Google profile photo if available
+      const avatarEl = document.getElementById('profile-avatar');
+      if (user.photoURL) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(user.photoURL)}" alt="Profile" />`;
+        avatarEl.classList.add('has-photo');
+      } else {
+        avatarEl.innerHTML = '🌮';
+        avatarEl.classList.remove('has-photo');
+      }
 
       // Badges
       const badgesEl = document.getElementById('profile-badges');
