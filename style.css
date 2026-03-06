@@ -1047,6 +1047,43 @@ a:hover { text-decoration: underline; }
   min-height: 60px;
 }
 
+.detected-hood {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #f5f0eb;
+  color: var(--color-text-secondary);
+}
+
+.detected-hood.detecting {
+  color: var(--color-primary);
+  background: #fff3e0;
+}
+
+.detected-hood.success {
+  color: #2e7d32;
+  background: #e8f5e9;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.detected-hood.error {
+  color: #c62828;
+  background: #ffebee;
+}
+
+.distance-badge {
+  display: inline-block;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+
 .auth-toggle {
   text-align: center;
   font-size: 13px;
@@ -1170,6 +1207,33 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
   border: none;
   box-shadow: var(--shadow-sm);
+}
+
+.rating-overall-calc {
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--color-primary);
+}
+
+.rating-overall-calc label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.overall-bar-track {
+  height: 8px;
+  background: #E8E0D8;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.overall-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+  transition: width 0.2s ease;
 }
 
 /* --- Tag Selector --- */

@@ -107,6 +107,7 @@
           <select id="filter-sort" onchange="filterPlaces()">
             <option value="rating">Top Rated</option>
             <option value="reviews">Most Reviewed</option>
+            <option value="nearest">Near Me 📍</option>
             <option value="newest">Newest</option>
           </select>
         </div>
@@ -398,29 +399,30 @@
             <button type="button" class="tag-btn" data-tag="chicharron" onclick="toggleTag(this)">Chicharrón</button>
             <button type="button" class="tag-btn" data-tag="migas" onclick="toggleTag(this)">Migas</button>
             <button type="button" class="tag-btn" data-tag="potato-egg" onclick="toggleTag(this)">Potato &amp; Egg</button>
+            <button type="button" class="tag-btn" data-tag="bacon-egg-cheese" onclick="toggleTag(this)">Bacon Egg &amp; Cheese</button>
             <button type="button" class="tag-btn" data-tag="other" onclick="toggleTag(this)">Other</button>
           </div>
         </div>
         <div class="rating-inputs">
           <div class="rating-group">
-            <label>Overall<span class="rating-val" id="val-overall">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-overall" oninput="updateRatingVal('overall', this.value)" />
-          </div>
-          <div class="rating-group">
             <label>Tortilla<span class="rating-val" id="val-tortilla">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value)" />
+            <input type="range" min="1" max="10" value="5" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Protein<span class="rating-val" id="val-protein">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-protein" oninput="updateRatingVal('protein', this.value)" />
+            <input type="range" min="1" max="10" value="5" id="rate-protein" oninput="updateRatingVal('protein', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Salsa<span class="rating-val" id="val-salsa">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-salsa" oninput="updateRatingVal('salsa', this.value)" />
+            <input type="range" min="1" max="10" value="5" id="rate-salsa" oninput="updateRatingVal('salsa', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Value<span class="rating-val" id="val-value">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-value" oninput="updateRatingVal('value', this.value)" />
+            <input type="range" min="1" max="10" value="5" id="rate-value" oninput="updateRatingVal('value', this.value); recalcOverall()" />
+          </div>
+          <div class="rating-group rating-overall-calc">
+            <label>Overall<span class="rating-val" id="val-overall">5.0</span></label>
+            <div class="overall-bar-track"><div class="overall-bar-fill" id="overall-bar" style="width:50%"></div></div>
           </div>
         </div>
         <div class="form-group">
@@ -463,31 +465,14 @@
         </div>
         <div class="form-group">
           <label for="new-place-address">Address</label>
-          <input type="text" id="new-place-address" placeholder="123 Navigation Blvd" required />
+          <input type="text" id="new-place-address" placeholder="123 Navigation Blvd, Houston, TX" required onblur="autoDetectNeighborhood()" />
         </div>
         <div class="form-group">
-          <label for="new-place-neighborhood">Neighborhood</label>
-          <select id="new-place-neighborhood" required>
-            <option value="">Select...</option>
-            <option value="downtown">Downtown</option>
-            <option value="eado">EaDo</option>
-            <option value="east-end">East End</option>
-            <option value="galleria">Galleria</option>
-            <option value="heights">The Heights</option>
-            <option value="katy">Katy</option>
-            <option value="memorial">Memorial</option>
-            <option value="midtown">Midtown</option>
-            <option value="montrose">Montrose</option>
-            <option value="northside">Northside</option>
-            <option value="pasadena">Pasadena</option>
-            <option value="river-oaks">River Oaks</option>
-            <option value="spring">Spring</option>
-            <option value="spring-branch">Spring Branch</option>
-            <option value="sugar-land">Sugar Land</option>
-            <option value="third-ward">Third Ward</option>
-            <option value="washington-ave">Washington Ave</option>
-            <option value="bellaire">Bellaire</option>
-          </select>
+          <label>Neighborhood</label>
+          <div id="detected-neighborhood" class="detected-hood">Enter an address to auto-detect</div>
+          <input type="hidden" id="new-place-neighborhood" />
+          <input type="hidden" id="new-place-lat" />
+          <input type="hidden" id="new-place-lng" />
         </div>
         <div class="form-group">
           <label for="new-place-type">Type</label>

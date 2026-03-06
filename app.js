@@ -19,6 +19,68 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
+// ===================== NEIGHBORHOOD GEO-FENCING =====================
+// Bounding boxes: [minLat, maxLat, minLng, maxLng]
+const NEIGHBORHOOD_BOUNDS = {
+  'downtown':       [29.7520, 29.7700, -95.3750, -95.3550],
+  'eado':           [29.7380, 29.7560, -95.3650, -95.3400],
+  'east-end':       [29.7100, 29.7600, -95.3400, -95.2800],
+  'heights':        [29.7730, 29.8200, -95.4250, -95.3850],
+  'montrose':       [29.7300, 29.7530, -95.4150, -95.3800],
+  'midtown':        [29.7300, 29.7530, -95.3850, -95.3700],
+  'washington-ave': [29.7630, 29.7780, -95.4350, -95.3700],
+  'river-oaks':     [29.7180, 29.7630, -95.4300, -95.3950],
+  'northside':      [29.7900, 29.8800, -95.3950, -95.3550],
+  'third-ward':     [29.7200, 29.7520, -95.3800, -95.3450],
+  'galleria':       [29.7150, 29.7450, -95.4950, -95.4500],
+  'spring-branch':  [29.7900, 29.8200, -95.5200, -95.4700],
+  'bellaire':       [29.6900, 29.7200, -95.5100, -95.4700],
+  'memorial':       [29.7500, 29.7900, -95.5500, -95.4350],
+  'pasadena':       [29.6400, 29.7100, -95.3600, -95.1800],
+  'katy':           [29.7100, 29.8000, -95.7600, -95.6800],
+  'sugar-land':     [29.5500, 29.6500, -95.6500, -95.5700],
+  'spring':         [30.0200, 30.1200, -95.4500, -95.3500]
+};
+
+function detectNeighborhood(lat, lng) {
+  // Check each neighborhood's bounding box
+  for (const [hood, [minLat, maxLat, minLng, maxLng]] of Object.entries(NEIGHBORHOOD_BOUNDS)) {
+    if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
+      return hood;
+    }
+  }
+  // Fallback: find the closest neighborhood center
+  let closest = null;
+  let minDist = Infinity;
+  for (const [hood, [minLat, maxLat, minLng, maxLng]] of Object.entries(NEIGHBORHOOD_BOUNDS)) {
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLng = (minLng + maxLng) / 2;
+    const dist = Math.sqrt(Math.pow(lat - centerLat, 2) + Math.pow(lng - centerLng, 2));
+    if (dist < minDist) {
+      minDist = dist;
+      closest = hood;
+    }
+  }
+  return closest;
+}
+
+async function geocodeAddress(address) {
+  const token = (window.__mb || []).join('');
+  if (!token) return null;
+  try {
+    const query = encodeURIComponent(address + (address.toLowerCase().includes('houston') ? '' : ', Houston, TX'));
+    const resp = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${token}&limit=1&bbox=-96.0,-29.4,-95.0,30.2`);
+    const data = await resp.json();
+    if (data.features && data.features.length > 0) {
+      const [lng, lat] = data.features[0].center;
+      return { lat, lng };
+    }
+  } catch (err) {
+    console.error('Geocoding error:', err);
+  }
+  return null;
+}
+
 // ===================== APP STATE =====================
 let currentUser = null;
 let currentView = 'feed';
@@ -511,6 +573,31 @@ async function postComment(reviewId) {
 }
 
 // ===================== EXPLORE / PLACES =====================
+let userLocation = null;
+
+function getUserLocation() {
+  return new Promise((resolve) => {
+    if (userLocation) { resolve(userLocation); return; }
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(userLocation);
+      },
+      () => resolve(null),
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  });
+}
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959; // miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 async function loadPlaces() {
   const grid = document.getElementById('places-grid');
   const mapEl = document.getElementById('map');
@@ -521,25 +608,53 @@ async function loadPlaces() {
     const neighborhood = document.getElementById('filter-neighborhood').value;
     const sort = document.getElementById('filter-sort').value;
 
-    let query = db.collection('places');
+    let places = [];
 
-    if (neighborhood) {
-      query = query.where('neighborhood', '==', neighborhood);
+    if (sort === 'nearest') {
+      // For nearest sort: get user location, fetch all, sort client-side
+      const loc = await getUserLocation();
+      if (!loc) {
+        showToast('Enable location access to sort by distance');
+        document.getElementById('filter-sort').value = 'rating';
+        // Fall through to normal sort
+      } else {
+        let query = db.collection('places');
+        if (neighborhood) {
+          query = query.where('neighborhood', '==', neighborhood);
+        }
+        const snap = await query.limit(100).get();
+        places = snap.docs.map(d => {
+          const data = d.data();
+          const dist = (data.lat && data.lng)
+            ? haversineDistance(loc.lat, loc.lng, data.lat, data.lng)
+            : 9999;
+          return { id: d.id, ...data, _distance: dist };
+        });
+        places.sort((a, b) => a._distance - b._distance);
+        places = places.slice(0, 30);
+      }
     }
 
-    if (sort === 'rating') {
-      query = query.orderBy('avgOverall', 'desc');
-    } else if (sort === 'reviews') {
-      query = query.orderBy('reviewCount', 'desc');
-    } else {
-      query = query.orderBy('createdAt', 'desc');
+    // Standard Firestore-sorted query if not already populated
+    if (places.length === 0) {
+      let query = db.collection('places');
+      if (neighborhood) {
+        query = query.where('neighborhood', '==', neighborhood);
+      }
+      const currentSort = document.getElementById('filter-sort').value;
+      if (currentSort === 'rating') {
+        query = query.orderBy('avgOverall', 'desc');
+      } else if (currentSort === 'reviews') {
+        query = query.orderBy('reviewCount', 'desc');
+      } else {
+        query = query.orderBy('createdAt', 'desc');
+      }
+      query = query.limit(30);
+      const snap = await query.get();
+      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    query = query.limit(30);
-
-    const snap = await query.get();
-
-    if (snap.empty) {
+    if (places.length === 0) {
       grid.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">📍</span>
@@ -552,13 +667,21 @@ async function loadPlaces() {
     }
 
     grid.innerHTML = '';
-    snap.forEach(doc => {
-      const place = doc.data();
-      grid.appendChild(createPlaceCard(doc.id, place));
+    places.forEach(place => {
+      const card = createPlaceCard(place.id, place);
+      // Show distance if available
+      if (place._distance && place._distance < 9999) {
+        const distBadge = document.createElement('span');
+        distBadge.className = 'distance-badge';
+        distBadge.textContent = place._distance < 0.1
+          ? 'Right here!'
+          : place._distance.toFixed(1) + ' mi';
+        card.querySelector('.card')?.prepend(distBadge) || card.prepend(distBadge);
+      }
+      grid.appendChild(card);
     });
 
-    // Init map if Google Maps is available
-    initMap(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    initMap(places);
   } catch (err) {
     console.error('Places error:', err);
     grid.innerHTML = `
@@ -766,6 +889,41 @@ function closePlaceModal() {
   document.getElementById('place-form').reset();
 }
 
+async function autoDetectNeighborhood() {
+  const address = document.getElementById('new-place-address').value.trim();
+  const display = document.getElementById('detected-neighborhood');
+  if (!address) {
+    display.textContent = 'Enter an address to auto-detect';
+    display.className = 'detected-hood';
+    return;
+  }
+
+  display.textContent = 'Detecting neighborhood...';
+  display.className = 'detected-hood detecting';
+
+  const coords = await geocodeAddress(address);
+  if (!coords) {
+    display.textContent = 'Could not locate address — check the address and try again';
+    display.className = 'detected-hood error';
+    document.getElementById('new-place-neighborhood').value = '';
+    return;
+  }
+
+  document.getElementById('new-place-lat').value = coords.lat;
+  document.getElementById('new-place-lng').value = coords.lng;
+
+  const hood = detectNeighborhood(coords.lat, coords.lng);
+  if (hood) {
+    document.getElementById('new-place-neighborhood').value = hood;
+    display.textContent = '📍 ' + formatNeighborhood(hood);
+    display.className = 'detected-hood success';
+  } else {
+    display.textContent = 'Address outside Houston area';
+    display.className = 'detected-hood error';
+    document.getElementById('new-place-neighborhood').value = '';
+  }
+}
+
 async function submitPlace(e) {
   e.preventDefault();
   if (!currentUser) { navigate('auth'); return; }
@@ -774,17 +932,41 @@ async function submitPlace(e) {
   const address = document.getElementById('new-place-address').value.trim();
   const neighborhood = document.getElementById('new-place-neighborhood').value;
   const type = document.getElementById('new-place-type').value;
+  const lat = parseFloat(document.getElementById('new-place-lat').value) || null;
+  const lng = parseFloat(document.getElementById('new-place-lng').value) || null;
 
-  if (!name || !address || !neighborhood) {
-    showToast('Please fill in all fields');
+  if (!name || !address) {
+    showToast('Please fill in name and address');
     return;
   }
 
+  // Auto-detect neighborhood if not yet done
+  if (!neighborhood) {
+    const coords = await geocodeAddress(address);
+    if (coords) {
+      const hood = detectNeighborhood(coords.lat, coords.lng);
+      if (hood) {
+        document.getElementById('new-place-neighborhood').value = hood;
+        document.getElementById('new-place-lat').value = coords.lat;
+        document.getElementById('new-place-lng').value = coords.lng;
+      }
+    }
+    const finalHood = document.getElementById('new-place-neighborhood').value;
+    if (!finalHood) {
+      showToast('Could not determine neighborhood from address');
+      return;
+    }
+  }
+
+  const finalNeighborhood = document.getElementById('new-place-neighborhood').value;
+  const finalLat = parseFloat(document.getElementById('new-place-lat').value) || null;
+  const finalLng = parseFloat(document.getElementById('new-place-lng').value) || null;
+
   try {
-    const docRef = await db.collection('places').add({
+    const placeData = {
       name,
       address,
-      neighborhood,
+      neighborhood: finalNeighborhood,
       type,
       reviewCount: 0,
       avgOverall: 0,
@@ -796,7 +978,13 @@ async function submitPlace(e) {
       topTags: [],
       addedBy: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    if (finalLat && finalLng) {
+      placeData.lat = finalLat;
+      placeData.lng = finalLng;
+    }
+
+    const docRef = await db.collection('places').add(placeData);
 
     closePlaceModal();
     showToast(`${name} added!`);
@@ -838,6 +1026,17 @@ function updateRatingVal(category, value) {
   document.getElementById(`val-${category}`).textContent = value;
 }
 
+function recalcOverall() {
+  const t = parseInt(document.getElementById('rate-tortilla').value);
+  const p = parseInt(document.getElementById('rate-protein').value);
+  const s = parseInt(document.getElementById('rate-salsa').value);
+  const v = parseInt(document.getElementById('rate-value').value);
+  const avg = (t + p + s + v) / 4;
+  document.getElementById('val-overall').textContent = avg.toFixed(1);
+  const bar = document.getElementById('overall-bar');
+  if (bar) bar.style.width = (avg / 10 * 100) + '%';
+}
+
 function toggleTag(btn) {
   const tag = btn.dataset.tag;
   btn.classList.toggle('selected');
@@ -864,12 +1063,16 @@ async function submitReview(e) {
   e.preventDefault();
   if (!currentUser || !currentPlaceId) return;
 
+  const tortilla = parseInt(document.getElementById('rate-tortilla').value);
+  const protein = parseInt(document.getElementById('rate-protein').value);
+  const salsa = parseInt(document.getElementById('rate-salsa').value);
+  const value = parseInt(document.getElementById('rate-value').value);
   const ratings = {
-    overall: parseInt(document.getElementById('rate-overall').value),
-    tortilla: parseInt(document.getElementById('rate-tortilla').value),
-    protein: parseInt(document.getElementById('rate-protein').value),
-    salsa: parseInt(document.getElementById('rate-salsa').value),
-    value: parseInt(document.getElementById('rate-value').value),
+    overall: Math.round(((tortilla + protein + salsa + value) / 4) * 10) / 10,
+    tortilla,
+    protein,
+    salsa,
+    value,
   };
 
   const text = document.getElementById('review-text').value.trim();
@@ -1474,6 +1677,7 @@ function formatTag(tag) {
     'chicharron': 'Chicharrón',
     'migas': 'Migas',
     'potato-egg': 'Potato & Egg',
+    'bacon-egg-cheese': 'Bacon Egg & Cheese',
     'other': 'Other'
   };
   return tagNames[tag] || tag;
