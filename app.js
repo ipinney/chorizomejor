@@ -631,20 +631,39 @@ async function loadPlaces() {
     // Standard Firestore-sorted query if not already populated
     if (places.length === 0) {
       let query = db.collection('places');
-      if (neighborhood) {
-        query = query.where('neighborhood', '==', neighborhood);
-      }
       const currentSort = document.getElementById('filter-sort').value;
-      if (currentSort === 'rating') {
-        query = query.orderBy('avgOverall', 'desc');
-      } else if (currentSort === 'reviews') {
-        query = query.orderBy('reviewCount', 'desc');
+      if (neighborhood) {
+        // Filter by neighborhood – fetch all then sort client-side
+        // (avoids needing composite Firestore indexes for each sort field)
+        query = query.where('neighborhood', '==', neighborhood);
+        query = query.limit(100);
+        const snap = await query.get();
+        places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (currentSort === 'rating') {
+          places.sort((a, b) => (b.avgOverall || 0) - (a.avgOverall || 0));
+        } else if (currentSort === 'reviews') {
+          places.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+        } else {
+          places.sort((a, b) => {
+            const ta = a.createdAt ? a.createdAt.toMillis() : 0;
+            const tb = b.createdAt ? b.createdAt.toMillis() : 0;
+            return tb - ta;
+          });
+        }
+        places = places.slice(0, 30);
       } else {
-        query = query.orderBy('createdAt', 'desc');
+        // No filter – use Firestore-sorted query (single-field index only)
+        if (currentSort === 'rating') {
+          query = query.orderBy('avgOverall', 'desc');
+        } else if (currentSort === 'reviews') {
+          query = query.orderBy('reviewCount', 'desc');
+        } else {
+          query = query.orderBy('createdAt', 'desc');
+        }
+        query = query.limit(30);
+        const snap = await query.get();
+        places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       }
-      query = query.limit(30);
-      const snap = await query.get();
-      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
     if (places.length === 0) {
