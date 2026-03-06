@@ -422,7 +422,7 @@ function createReviewCard(reviewId, review) {
     <div class="card-body">
       <div class="card-place-name" onclick="navigate('place','${escapeHtml(review.placeId)}')">${escapeHtml(review.placeName || 'Unknown Spot')}</div>
       <div class="card-ratings">
-        <span class="card-rating-chip highlight">Overall ${overallScore}/10</span>
+        <span class="card-rating-chip highlight">${overallScore !== '-' ? renderStars(Number(overallScore), 'cm') : ''} ${overallScore}/5</span>
         ${review.ratings?.tortilla ? `<span class="card-rating-chip">Tortilla ${review.ratings.tortilla}</span>` : ''}
         ${review.ratings?.protein ? `<span class="card-rating-chip">Protein ${review.ratings.protein}</span>` : ''}
         ${review.ratings?.salsa ? `<span class="card-rating-chip">Salsa ${review.ratings.salsa}</span>` : ''}
@@ -763,7 +763,7 @@ function createPlaceCard(placeId, place) {
         <div class="place-card-name">${escapeHtml(place.name)}</div>
         <div class="place-card-address">${escapeHtml(place.address || '')}</div>
         <div class="place-card-stats">
-          <span class="place-card-score">★ ${score}</span>
+          <span class="place-card-score">★ ${score}/5</span>
           <span>${place.reviewCount || 0} reviews</span>
           <span>${formatNeighborhood(place.neighborhood)}</span>
         </div>
@@ -973,15 +973,38 @@ async function loadPlaceDetail(placeId) {
       ? `⏰ ${waitPct}% would wait in line`
       : '';
 
-    // Rating bars
-    const categories = ['overall', 'tortilla', 'protein', 'salsa', 'value'];
-    categories.forEach(cat => {
-      const avg = place[`avg${capitalize(cat)}`] || 0;
-      const bar = document.getElementById(`bar-${cat}`);
-      const score = document.getElementById(`score-${cat}`);
-      bar.style.width = `${avg * 10}%`;
-      score.textContent = avg ? avg.toFixed(1) : '-';
-    });
+    // Hero rating: CM reviews primary, Google fallback
+    const hasCMReviews = (place.reviewCount || 0) > 0;
+    const heroNumber = document.getElementById('hero-rating-number');
+    const heroStars = document.getElementById('hero-rating-stars');
+    const heroSource = document.getElementById('hero-rating-source');
+    const categoryRatings = document.getElementById('category-ratings');
+
+    if (hasCMReviews) {
+      const cmRating = place.avgOverall || 0;
+      heroNumber.textContent = cmRating ? cmRating.toFixed(1) : '-';
+      heroStars.innerHTML = renderStars(cmRating, 'cm');
+      heroSource.textContent = `${place.reviewCount} Chorizo Mejor review${place.reviewCount !== 1 ? 's' : ''}`;
+      categoryRatings.style.display = '';
+
+      // Category bars (1-5 scale)
+      const categories = ['tortilla', 'protein', 'salsa', 'value'];
+      categories.forEach(cat => {
+        const avg = place[`avg${capitalize(cat)}`] || 0;
+        const bar = document.getElementById(`bar-${cat}`);
+        const score = document.getElementById(`score-${cat}`);
+        if (bar) bar.style.width = `${(avg / 5) * 100}%`;
+        if (score) score.textContent = avg ? avg.toFixed(1) : '-';
+      });
+    } else {
+      // No CM reviews — show placeholder, will be replaced by Google rating async
+      heroNumber.textContent = '-';
+      heroStars.innerHTML = '';
+      heroSource.textContent = 'No reviews yet';
+      categoryRatings.style.display = 'none';
+      // Mark hero as needing Google fallback
+      document.getElementById('hero-rating').dataset.needsFallback = 'true';
+    }
 
     // Tags
     const tagsEl = document.getElementById('place-tags');
@@ -1235,7 +1258,7 @@ function recalcOverall() {
   const avg = (t + p + s + v) / 4;
   document.getElementById('val-overall').textContent = avg.toFixed(1);
   const bar = document.getElementById('overall-bar');
-  if (bar) bar.style.width = (avg / 10 * 100) + '%';
+  if (bar) bar.style.width = (avg / 5 * 100) + '%';
 }
 
 function toggleTag(btn) {
@@ -1871,14 +1894,27 @@ async function fetchLiveRatings(place) {
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
 
-    if (googleSlot && data.google && data.google.rating) {
-      googleSlot.innerHTML =
-        `<span class="ext-rating">${data.google.rating}</span>` +
-        `<span class="ext-stars">${renderStars(data.google.rating, 'google')}</span>` +
-        (data.google.reviewCount ? `<span class="ext-count">(${data.google.reviewCount.toLocaleString()})</span>` : '');
+    if (data.google && data.google.rating) {
+      // Update the Google button with live rating
+      if (googleSlot) {
+        googleSlot.innerHTML =
+          `<span class="ext-rating">${data.google.rating}</span>` +
+          `<span class="ext-stars">${renderStars(data.google.rating, 'google')}</span>` +
+          (data.google.reviewCount ? `<span class="ext-count">(${data.google.reviewCount.toLocaleString()})</span>` : '');
+      }
       // Update link to the canonical Google Maps URL
       const googleLink = document.getElementById('google-link');
       if (googleLink && data.google.url) googleLink.href = data.google.url;
+
+      // If no CM reviews, use Google rating as the hero fallback
+      const heroEl = document.getElementById('hero-rating');
+      if (heroEl && heroEl.dataset.needsFallback === 'true') {
+        document.getElementById('hero-rating-number').textContent = data.google.rating.toFixed(1);
+        document.getElementById('hero-rating-stars').innerHTML = renderStars(data.google.rating, 'google');
+        const countStr = data.google.reviewCount ? ` (${data.google.reviewCount.toLocaleString()})` : '';
+        document.getElementById('hero-rating-source').textContent = `Google rating${countStr}`;
+        heroEl.dataset.needsFallback = 'false';
+      }
     } else if (googleSlot) {
       googleSlot.innerHTML = '<span class="ext-label">Google</span>';
     }
@@ -1887,9 +1923,9 @@ async function fetchLiveRatings(place) {
   }
 }
 
-// Render star icons for external ratings (Google / Yelp)
+// Render star icons for ratings (CM / Google / Yelp)
 function renderStars(rating, platform) {
-  const color = platform === 'yelp' ? '#FF1A1A' : '#FBBC05';
+  const color = platform === 'cm' ? '#D84315' : platform === 'yelp' ? '#FF1A1A' : '#FBBC05';
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.3 ? 1 : 0;
   const empty = 5 - full - half;

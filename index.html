@@ -307,30 +307,36 @@
       </div>
       <div id="place-links" class="place-links"></div>
       <div class="place-ratings-summary" id="place-ratings-summary">
-        <div class="rating-bar">
-          <label>Overall</label>
-          <div class="bar-track"><div class="bar-fill" id="bar-overall"></div></div>
-          <span class="bar-score" id="score-overall">-</span>
+        <!-- Hero rating: CM reviews (primary) or Google (fallback) -->
+        <div class="hero-rating" id="hero-rating">
+          <div class="hero-rating-number" id="hero-rating-number">-</div>
+          <div class="hero-rating-meta">
+            <div class="hero-rating-stars" id="hero-rating-stars"></div>
+            <div class="hero-rating-source" id="hero-rating-source"></div>
+          </div>
         </div>
-        <div class="rating-bar">
-          <label>Tortilla</label>
-          <div class="bar-track"><div class="bar-fill" id="bar-tortilla"></div></div>
-          <span class="bar-score" id="score-tortilla">-</span>
-        </div>
-        <div class="rating-bar">
-          <label>Protein</label>
-          <div class="bar-track"><div class="bar-fill" id="bar-protein"></div></div>
-          <span class="bar-score" id="score-protein">-</span>
-        </div>
-        <div class="rating-bar">
-          <label>Salsa</label>
-          <div class="bar-track"><div class="bar-fill" id="bar-salsa"></div></div>
-          <span class="bar-score" id="score-salsa">-</span>
-        </div>
-        <div class="rating-bar">
-          <label>Value</label>
-          <div class="bar-track"><div class="bar-fill" id="bar-value"></div></div>
-          <span class="bar-score" id="score-value">-</span>
+        <!-- Category breakdown (only shows when CM reviews exist) -->
+        <div class="category-ratings" id="category-ratings">
+          <div class="rating-bar">
+            <label>Tortilla</label>
+            <div class="bar-track"><div class="bar-fill" id="bar-tortilla"></div></div>
+            <span class="bar-score" id="score-tortilla">-</span>
+          </div>
+          <div class="rating-bar">
+            <label>Protein</label>
+            <div class="bar-track"><div class="bar-fill" id="bar-protein"></div></div>
+            <span class="bar-score" id="score-protein">-</span>
+          </div>
+          <div class="rating-bar">
+            <label>Salsa</label>
+            <div class="bar-track"><div class="bar-fill" id="bar-salsa"></div></div>
+            <span class="bar-score" id="score-salsa">-</span>
+          </div>
+          <div class="rating-bar">
+            <label>Value</label>
+            <div class="bar-track"><div class="bar-fill" id="bar-value"></div></div>
+            <span class="bar-score" id="score-value">-</span>
+          </div>
         </div>
       </div>
       <div class="place-tags" id="place-tags"></div>
@@ -413,24 +419,24 @@
         </div>
         <div class="rating-inputs">
           <div class="rating-group">
-            <label>Tortilla<span class="rating-val" id="val-tortilla">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value); recalcOverall()" />
+            <label>Tortilla<span class="rating-val" id="val-tortilla">3</span></label>
+            <input type="range" min="1" max="5" value="3" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
-            <label>Protein<span class="rating-val" id="val-protein">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-protein" oninput="updateRatingVal('protein', this.value); recalcOverall()" />
+            <label>Protein<span class="rating-val" id="val-protein">3</span></label>
+            <input type="range" min="1" max="5" value="3" id="rate-protein" oninput="updateRatingVal('protein', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
-            <label>Salsa<span class="rating-val" id="val-salsa">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-salsa" oninput="updateRatingVal('salsa', this.value); recalcOverall()" />
+            <label>Salsa<span class="rating-val" id="val-salsa">3</span></label>
+            <input type="range" min="1" max="5" value="3" id="rate-salsa" oninput="updateRatingVal('salsa', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
-            <label>Value<span class="rating-val" id="val-value">5</span></label>
-            <input type="range" min="1" max="10" value="5" id="rate-value" oninput="updateRatingVal('value', this.value); recalcOverall()" />
+            <label>Value<span class="rating-val" id="val-value">3</span></label>
+            <input type="range" min="1" max="5" value="3" id="rate-value" oninput="updateRatingVal('value', this.value); recalcOverall()" />
           </div>
           <div class="rating-group rating-overall-calc">
-            <label>Overall<span class="rating-val" id="val-overall">5.0</span></label>
-            <div class="overall-bar-track"><div class="overall-bar-fill" id="overall-bar" style="width:50%"></div></div>
+            <label>Overall<span class="rating-val" id="val-overall">3.0</span></label>
+            <div class="overall-bar-track"><div class="overall-bar-fill" id="overall-bar" style="width:60%"></div></div>
           </div>
         </div>
         <div class="form-group">
