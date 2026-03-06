@@ -3,11 +3,12 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v4';
+const CACHE_NAME = 'chorizo-mejor-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/style.css',
+  '/neighborhoods.js',
   '/app.js',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Ranchers&family=Inter:wght@400;500;600;700&display=swap',

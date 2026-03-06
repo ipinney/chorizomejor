@@ -21,45 +21,35 @@ const storage = firebase.storage();
 
 // ===================== NEIGHBORHOOD GEO-FENCING =====================
 // Bounding boxes: [minLat, maxLat, minLng, maxLng]
-const NEIGHBORHOOD_BOUNDS = {
-  'downtown':       [29.7520, 29.7700, -95.3750, -95.3550],
-  'eado':           [29.7380, 29.7560, -95.3650, -95.3400],
-  'east-end':       [29.7100, 29.7600, -95.3400, -95.2800],
-  'heights':        [29.7730, 29.8200, -95.4250, -95.3850],
-  'montrose':       [29.7300, 29.7530, -95.4150, -95.3800],
-  'midtown':        [29.7300, 29.7530, -95.3850, -95.3700],
-  'washington-ave': [29.7630, 29.7780, -95.4350, -95.3700],
-  'river-oaks':     [29.7180, 29.7630, -95.4300, -95.3950],
-  'northside':      [29.7900, 29.8800, -95.3950, -95.3550],
-  'third-ward':     [29.7200, 29.7520, -95.3800, -95.3450],
-  'galleria':       [29.7150, 29.7450, -95.4950, -95.4500],
-  'spring-branch':  [29.7900, 29.8200, -95.5200, -95.4700],
-  'bellaire':       [29.6900, 29.7200, -95.5100, -95.4700],
-  'memorial':       [29.7500, 29.7900, -95.5500, -95.4350],
-  'pasadena':       [29.6400, 29.7100, -95.3600, -95.1800],
-  'katy':           [29.7100, 29.8000, -95.7600, -95.6800],
-  'sugar-land':     [29.5500, 29.6500, -95.6500, -95.5700],
-  'spring':         [30.0200, 30.1200, -95.4500, -95.3500]
-};
-
-function detectNeighborhood(lat, lng) {
-  // Check each neighborhood's bounding box
-  for (const [hood, [minLat, maxLat, minLng, maxLng]] of Object.entries(NEIGHBORHOOD_BOUNDS)) {
-    if (lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng) {
-      return hood;
+/* Point-in-polygon via ray-casting – works with HOOD_DATA from neighborhoods.js */
+function pointInPolygon(lat, lng, coords) {
+  let inside = false;
+  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    const xi = coords[i][0], yi = coords[i][1];
+    const xj = coords[j][0], yj = coords[j][1];
+    if ((yi > lat) !== (yj > lat) && lng < (xj - xi) * (lat - yi) / (yj - yi) + xi) {
+      inside = !inside;
     }
   }
-  // Fallback: find the closest neighborhood center
+  return inside;
+}
+
+function detectNeighborhood(lat, lng) {
+  if (typeof HOOD_DATA === 'undefined') return null;
+  // Exact polygon hit-test
+  for (const [hood, data] of Object.entries(HOOD_DATA)) {
+    if (pointInPolygon(lat, lng, data.coords)) return hood;
+  }
+  // Fallback: closest polygon centroid
   let closest = null;
   let minDist = Infinity;
-  for (const [hood, [minLat, maxLat, minLng, maxLng]] of Object.entries(NEIGHBORHOOD_BOUNDS)) {
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
-    const dist = Math.sqrt(Math.pow(lat - centerLat, 2) + Math.pow(lng - centerLng, 2));
-    if (dist < minDist) {
-      minDist = dist;
-      closest = hood;
-    }
+  for (const [hood, data] of Object.entries(HOOD_DATA)) {
+    const c = data.coords;
+    let cx = 0, cy = 0;
+    for (const p of c) { cx += p[0]; cy += p[1]; }
+    cx /= c.length; cy /= c.length;
+    const dist = Math.sqrt(Math.pow(lat - cy, 2) + Math.pow(lng - cx, 2));
+    if (dist < minDist) { minDist = dist; closest = hood; }
   }
   return closest;
 }
@@ -769,36 +759,13 @@ let mapReady = false;
 let pendingPlaces = null;
 
 // Neighborhood polygon coordinates [lng, lat] rings
-const HOOD_POLYGONS = {
-  'downtown': [[-95.375,-95.355,-95.355,-95.375,-95.375],[29.752,29.752,29.770,29.770,29.752]],
-  'eado': [[-95.365,-95.340,-95.340,-95.365,-95.365],[29.738,29.738,29.756,29.756,29.738]],
-  'east-end': [[-95.340,-95.280,-95.280,-95.340,-95.340],[29.710,29.710,29.760,29.760,29.710]],
-  'heights': [[-95.425,-95.385,-95.385,-95.425,-95.425],[29.773,29.773,29.820,29.820,29.773]],
-  'montrose': [[-95.415,-95.380,-95.380,-95.415,-95.415],[29.730,29.730,29.753,29.753,29.730]],
-  'midtown': [[-95.385,-95.370,-95.370,-95.385,-95.385],[29.730,29.730,29.753,29.753,29.730]],
-  'washington-ave': [[-95.435,-95.370,-95.370,-95.435,-95.435],[29.763,29.763,29.778,29.778,29.763]],
-  'river-oaks': [[-95.430,-95.395,-95.395,-95.430,-95.430],[29.718,29.718,29.763,29.763,29.718]],
-  'northside': [[-95.395,-95.355,-95.355,-95.395,-95.395],[29.790,29.790,29.830,29.830,29.790]],
-  'third-ward': [[-95.380,-95.345,-95.345,-95.380,-95.380],[29.720,29.720,29.752,29.752,29.720]],
-  'galleria': [[-95.495,-95.450,-95.450,-95.495,-95.495],[29.715,29.715,29.745,29.745,29.715]],
-  'spring-branch': [[-95.520,-95.470,-95.470,-95.520,-95.520],[29.790,29.790,29.820,29.820,29.790]],
-  'bellaire': [[-95.510,-95.470,-95.470,-95.510,-95.510],[29.690,29.690,29.720,29.720,29.690]],
-  'memorial': [[-95.550,-95.435,-95.435,-95.550,-95.550],[29.750,29.750,29.790,29.790,29.750]],
-  'pasadena': [[-95.360,-95.180,-95.180,-95.360,-95.360],[29.640,29.640,29.710,29.710,29.640]],
-  'katy': [[-95.760,-95.680,-95.680,-95.760,-95.760],[29.710,29.710,29.800,29.800,29.710]],
-  'sugar-land': [[-95.650,-95.570,-95.570,-95.650,-95.650],[29.550,29.550,29.650,29.650,29.550]],
-  'spring': [[-95.450,-95.350,-95.350,-95.450,-95.450],[30.020,30.020,30.120,30.120,30.020]]
-};
-
 function buildHoodGeoJSON() {
-  const features = Object.entries(HOOD_POLYGONS).map(([name, [lngs, lats]]) => {
-    const coords = lngs.map((lng, i) => [lng, lats[i]]);
-    return {
-      type: 'Feature',
-      properties: { name, label: formatNeighborhood(name) },
-      geometry: { type: 'Polygon', coordinates: [coords] }
-    };
-  });
+  if (typeof HOOD_DATA === 'undefined') return { type: 'FeatureCollection', features: [] };
+  const features = Object.entries(HOOD_DATA).map(([name, data]) => ({
+    type: 'Feature',
+    properties: { name, label: data.label },
+    geometry: { type: 'Polygon', coordinates: [data.coords] }
+  }));
   return { type: 'FeatureCollection', features };
 }
 
@@ -1835,28 +1802,24 @@ function formatTag(tag) {
   return tagNames[tag] || tag;
 }
 
+/* Maps legacy neighborhood keys (from old seed data) to current HOOD_DATA keys */
+const LEGACY_HOOD_MAP = {
+  'eado': 'east-end',
+  'spring-branch': 'spring-branch-central',
+  'bellaire': 'meyerland',
+  'sugar-land': 'meyerland',
+  'spring': 'northline'
+};
+
 function formatNeighborhood(code) {
-  const names = {
-    'downtown': 'Downtown',
-    'eado': 'EaDo',
-    'east-end': 'East End',
-    'galleria': 'Galleria',
-    'heights': 'The Heights',
-    'katy': 'Katy',
-    'memorial': 'Memorial',
-    'midtown': 'Midtown',
-    'montrose': 'Montrose',
-    'northside': 'Northside',
-    'pasadena': 'Pasadena',
-    'river-oaks': 'River Oaks',
-    'spring': 'Spring',
-    'spring-branch': 'Spring Branch',
-    'sugar-land': 'Sugar Land',
-    'third-ward': 'Third Ward',
-    'washington-ave': 'Washington Ave',
-    'bellaire': 'Bellaire'
+  const mapped = LEGACY_HOOD_MAP[code] || code;
+  if (typeof HOOD_DATA !== 'undefined' && HOOD_DATA[mapped]) return HOOD_DATA[mapped].label;
+  // Absolute fallback
+  const legacy = {
+    'eado': 'EaDo', 'spring-branch': 'Spring Branch',
+    'bellaire': 'Bellaire', 'sugar-land': 'Sugar Land', 'spring': 'Spring'
   };
-  return names[code] || code || '';
+  return legacy[code] || code || '';
 }
 
 function getTimeAgo(date) {
