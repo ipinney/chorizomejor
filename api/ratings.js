@@ -79,13 +79,17 @@ export default async function handler(req, res) {
     } else {
       const errText = await googleRes.text();
       console.error('Google Places API error:', googleRes.status, errText);
+      result._debug = { status: googleRes.status, error: errText.substring(0, 500) };
     }
   } catch (e) {
     console.error('Google Places API fetch error:', e.message);
+    result._debug = { fetchError: e.message };
   }
 
-  // Cache the result
-  cache.set(cacheKey, { ts: Date.now(), data: result });
+  // Only cache successful results (not errors)
+  if (result.google) {
+    cache.set(cacheKey, { ts: Date.now(), data: result });
+  }
 
   return res.status(200).json(result);
 }
