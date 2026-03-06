@@ -592,7 +592,10 @@ async function loadPlaces() {
   const grid = document.getElementById('places-grid');
   const mapEl = document.getElementById('map');
   grid.innerHTML = '<div class="spinner"></div>';
-  mapEl.textContent = '📍 Map loading...';
+  // Only show loading text if map hasn't been initialized yet
+  if (!mapInstance) {
+    mapEl.textContent = '📍 Map loading...';
+  }
 
   try {
     const neighborhood = document.getElementById('filter-neighborhood').value;
@@ -795,7 +798,20 @@ async function initMap(places) {
   mapMarkers.forEach(m => m.remove());
   mapMarkers = [];
 
+  // If map container was destroyed (textContent overwrite), reset and recreate
+  if (mapInstance) {
+    try {
+      mapInstance.getContainer(); // throws if container is gone
+      mapInstance.resize(); // ensure canvas fits
+    } catch (e) {
+      mapInstance = null;
+      mapReady = false;
+      mapEl.innerHTML = '';
+    }
+  }
+
   if (!mapInstance) {
+    mapEl.innerHTML = ''; // clear any loading text
     mapInstance = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
