@@ -742,7 +742,7 @@ function createPlaceCard(placeId, place) {
   card.style.cursor = 'pointer';
   card.onclick = () => navigate('place', placeId);
 
-  const score = place.avgOverall ? place.avgOverall.toFixed(1) : '-';
+  const score = place.avgOverall ? place.avgOverall.toFixed(1) : (place.googleRating ? place.googleRating.toFixed(1) : '-');
   const typeEmoji = { truck: '🚚', restaurant: '🏪', bakery: '🍞', 'gas-station': '⛽' };
   const mbToken = (window.__mb || []).join('');
 
@@ -763,7 +763,7 @@ function createPlaceCard(placeId, place) {
         <div class="place-card-name">${escapeHtml(place.name)}</div>
         <div class="place-card-address">${escapeHtml(place.address || '')}</div>
         <div class="place-card-stats">
-          <span class="place-card-score">★ ${score}/5</span>
+          <span class="place-card-score">★ ${score}${score !== '-' ? '/5' : ''}</span>
           <span>${place.reviewCount || 0} reviews</span>
           <span>${formatNeighborhood(place.neighborhood)}</span>
         </div>
@@ -1415,23 +1415,37 @@ async function loadLeaderboard() {
   try {
     const neighborhood = document.getElementById('leaderboard-neighborhood').value;
     const ratingField = `avg${capitalize(leaderboardTab)}`;
+    const isOverall = leaderboardTab === 'overall';
 
+    // Always fetch all places and sort client-side (so we can use Google fallback)
     let query = db.collection('places');
-    let places;
-
     if (neighborhood) {
-      // Filter by neighborhood – fetch then sort client-side
-      // (avoids needing composite Firestore indexes for each sort field)
-      query = query.where('neighborhood', '==', neighborhood).limit(100);
-      const snap = await query.get();
-      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      places.sort((a, b) => (b[ratingField] || 0) - (a[ratingField] || 0));
-      places = places.slice(0, 20);
-    } else {
-      query = query.orderBy(ratingField, 'desc').limit(20);
-      const snap = await query.get();
-      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      query = query.where('neighborhood', '==', neighborhood);
     }
+    const snap = await query.limit(200).get();
+    let places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // For each place, compute display score:
+    // - CM review score (primary) if it has reviews
+    // - Google rating (fallback) for overall tab when no CM reviews
+    places.forEach(p => {
+      const cmScore = p[ratingField] || 0;
+      const hasCM = (p.reviewCount || 0) > 0 && cmScore > 0;
+      if (hasCM) {
+        p._displayScore = cmScore;
+        p._source = 'cm';
+      } else if (isOverall && p.googleRating) {
+        p._displayScore = p.googleRating;
+        p._source = 'google';
+      } else {
+        p._displayScore = 0;
+        p._source = 'none';
+      }
+    });
+
+    // Sort by display score descending
+    places.sort((a, b) => b._displayScore - a._displayScore);
+    places = places.filter(p => p._displayScore > 0).slice(0, 20);
 
     if (places.length === 0) {
       list.innerHTML = `
@@ -1447,9 +1461,13 @@ async function loadLeaderboard() {
     list.innerHTML = '';
     let rank = 1;
     places.forEach(p => {
-      const score = p[ratingField] ? p[ratingField].toFixed(1) : '-';
+      const score = p._displayScore ? p._displayScore.toFixed(1) : '-';
       const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
       const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      const sourceLabel = p._source === 'google' ? ' · <span class="leaderboard-google-badge">G</span>' : '';
+      const reviewLabel = p._source === 'cm'
+        ? `${p.reviewCount || 0} review${(p.reviewCount || 0) !== 1 ? 's' : ''}`
+        : p._source === 'google' ? 'Google' : '';
 
       const item = document.createElement('div');
       item.className = 'leaderboard-item';
@@ -1458,7 +1476,7 @@ async function loadLeaderboard() {
         <div class="leaderboard-rank ${rankClass}">${medal}</div>
         <div class="leaderboard-info">
           <div class="leaderboard-name">${escapeHtml(p.name)}</div>
-          <div class="leaderboard-neighborhood">${formatNeighborhood(p.neighborhood)} · ${p.reviewCount || 0} reviews</div>
+          <div class="leaderboard-neighborhood">${formatNeighborhood(p.neighborhood)} · ${reviewLabel}${sourceLabel}</div>
         </div>
         <div class="leaderboard-score">${score}</div>
       `;
@@ -1469,7 +1487,7 @@ async function loadLeaderboard() {
     // Monthly leaders - top 5
     const top5 = places.slice(0, 5);
     top5.forEach((p, i) => {
-      const score = p[ratingField] ? p[ratingField].toFixed(1) : '-';
+      const score = p._displayScore ? p._displayScore.toFixed(1) : '-';
       const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
       monthlyList.innerHTML += `
         <div class="leaderboard-item" onclick="navigate('place','${p.id}')">
@@ -1905,6 +1923,14 @@ async function fetchLiveRatings(place) {
       // Update link to the canonical Google Maps URL
       const googleLink = document.getElementById('google-link');
       if (googleLink && data.google.url) googleLink.href = data.google.url;
+
+      // Persist Google rating to Firestore (keeps data fresh for leaderboard/explore)
+      if (currentPlaceId) {
+        db.collection('places').doc(currentPlaceId).update({
+          googleRating: data.google.rating,
+          googleReviewCount: data.google.reviewCount || 0
+        }).catch(() => {}); // fire-and-forget
+      }
 
       // If no CM reviews, use Google rating as the hero fallback
       const heroEl = document.getElementById('hero-rating');

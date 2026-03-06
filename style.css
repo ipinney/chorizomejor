@@ -973,6 +973,19 @@ a:hover { text-decoration: underline; }
   color: var(--color-primary);
 }
 
+.leaderboard-google-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 10px;
+  color: #4285F4;
+  background: #E8F0FE;
+  border-radius: 3px;
+  padding: 1px 4px;
+  vertical-align: middle;
+}
+
 .leaderboard-section {
   margin-top: 24px;
 }
