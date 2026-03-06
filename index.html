@@ -291,7 +291,10 @@
         <span class="material-icons-round">arrow_back</span> Back
       </button>
       <div class="place-hero">
-        <div id="place-photo-banner" class="place-banner"></div>
+        <div id="place-photo-banner" class="place-banner">
+          <img id="place-banner-img" class="place-banner-img" src="" alt="" style="display:none" onerror="this.style.display='none';this.parentElement.querySelector('.place-banner-emoji').style.display='flex'" />
+          <div class="place-banner-emoji" style="display:flex">🌮</div>
+        </div>
         <div class="place-hero-info">
           <h2 id="place-name"></h2>
           <p id="place-address-detail" class="place-address"></p>
@@ -302,6 +305,7 @@
           </div>
         </div>
       </div>
+      <div id="place-links" class="place-links"></div>
       <div class="place-ratings-summary" id="place-ratings-summary">
         <div class="rating-bar">
           <label>Overall</label>

@@ -166,9 +166,196 @@ async function seedAllPlaces() {
   console.log('Reload the Explore page to see them.');
 }
 
+// ===================== PLACE LINKS DATA =====================
+// External links, phone numbers, etc. for place detail pages.
+// Run updatePlaceLinks() from the browser console to write to Firestore.
+
+const PLACE_LINKS = {
+  "Villa Arcos": {
+    yelpURL: "https://www.yelp.com/biz/villa-arcos-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Villa+Arcos+Houston+TX",
+    websiteURL: "https://originalvillaarcos.com/",
+    phone: "832-426-4766"
+  },
+  "Laredo Taqueria (Navigation)": {
+    yelpURL: "https://www.yelp.com/biz/laredo-taqueria-houston-2",
+    googleMapsURL: "https://www.google.com/maps/search/Laredo+Taqueria+Navigation+Houston+TX",
+    websiteURL: "https://www.laredotaqueria.com/",
+    phone: "713-861-7279"
+  },
+  "Laredo Taqueria (Montrose)": {
+    yelpURL: "https://www.yelp.com/biz/laredo-taqueria-houston-2",
+    googleMapsURL: "https://www.google.com/maps/search/Laredo+Taqueria+Montrose+Houston+TX",
+    websiteURL: "https://www.laredotaqueria.com/",
+    phone: "713-861-7279"
+  },
+  "The Original Ninfa's on Navigation": {
+    yelpURL: "https://www.yelp.com/biz/the-original-ninfas-on-navigation-houston-3",
+    googleMapsURL: "https://www.google.com/maps/search/Original+Ninfas+on+Navigation+Houston+TX",
+    websiteURL: "https://ninfas.com/",
+    phone: "713-228-1175"
+  },
+  "Brothers Taco House": {
+    yelpURL: "https://www.yelp.com/biz/brothers-taco-house-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Brothers+Taco+House+Houston+TX",
+    phone: "713-223-0091"
+  },
+  "Tacos A Go Go (Midtown)": {
+    yelpURL: "https://www.yelp.com/biz/tacos-a-go-go-midtown-houston-2",
+    googleMapsURL: "https://www.google.com/maps/search/Tacos+A+Go+Go+Midtown+Houston+TX",
+    websiteURL: "https://www.tacosagogo.com/",
+    phone: "713-807-8226"
+  },
+  "Tacos A Go Go (Heights)": {
+    yelpURL: "https://www.yelp.com/biz/tacos-a-go-go-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Tacos+A+Go+Go+Heights+Houston+TX",
+    websiteURL: "https://www.tacosagogo.com/",
+    phone: "713-807-8226"
+  },
+  "Tacos A Go Go (Washington)": {
+    yelpURL: "https://www.yelp.com/biz/tacos-a-go-go-houston-4",
+    googleMapsURL: "https://www.google.com/maps/search/Tacos+A+Go+Go+Washington+Houston+TX",
+    websiteURL: "https://www.tacosagogo.com/"
+  },
+  "Torchy's Tacos (Sugar Land)": {
+    yelpURL: "https://www.yelp.com/biz/torchys-tacos-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Torchys+Tacos+Sugar+Land+TX",
+    websiteURL: "https://torchystacos.com/",
+    phone: "713-595-8226"
+  },
+  "Velvet Taco": {
+    yelpURL: "https://www.yelp.com/biz/velvet-taco-washington-ave-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Velvet+Taco+Houston+TX",
+    websiteURL: "https://www.velvettaco.com/",
+    phone: "832-834-5908"
+  },
+  "El Tiempo Taqueria": {
+    yelpURL: "https://www.yelp.com/biz/el-tiempo-taqueria-houston",
+    googleMapsURL: "https://www.google.com/maps/search/El+Tiempo+Taqueria+Houston+TX",
+    websiteURL: "https://www.eltiempotaqueria.com/",
+    phone: "713-862-7792"
+  },
+  "Tacos Tierra Caliente": {
+    yelpURL: "https://www.yelp.com/biz/tacos-tierra-caliente-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Tacos+Tierra+Caliente+Houston+TX",
+    websiteURL: "https://www.tacostierracalientemx.com/",
+    phone: "713-584-9359"
+  },
+  "Tacos Tierra Caliente (Heights)": {
+    yelpURL: "https://www.yelp.com/biz/tacos-tierra-caliente-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Tacos+Tierra+Caliente+Heights+Houston+TX",
+    websiteURL: "https://www.tacostierracalientemx.com/"
+  },
+  "Taqueria Arandas": {
+    yelpURL: "https://www.yelp.com/biz/taquerias-arandas-houston-13",
+    googleMapsURL: "https://www.google.com/maps/search/Taqueria+Arandas+Houston+TX",
+    websiteURL: "https://www.taqueriasarandas.com/",
+    phone: "713-432-0212"
+  },
+  "El Taconazo": {
+    yelpURL: "https://www.yelp.com/biz/el-taconazo-houston-5",
+    googleMapsURL: "https://www.google.com/maps/search/El+Taconazo+Houston+TX",
+    websiteURL: "https://eltaconazo.shop/",
+    phone: "832-989-4472"
+  },
+  "Sunrise Taquitos": {
+    yelpURL: "https://www.yelp.com/biz/sunrise-taquitos-mexican-grill-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Sunrise+Taquitos+Houston+TX",
+    websiteURL: "https://sunrisetaquitostx.com/",
+    phone: "713-880-5959"
+  },
+  "La Guadalupana Bakery & Cafe": {
+    yelpURL: "https://www.yelp.com/biz/la-guadalupana-bakery-and-caf%C3%A9-houston-3",
+    googleMapsURL: "https://www.google.com/maps/search/La+Guadalupana+Bakery+Cafe+Houston+TX",
+    websiteURL: "https://www.laguadalupanacafeandbakery.com/",
+    phone: "713-522-2301"
+  },
+  "The Pit Room": {
+    yelpURL: "https://www.yelp.com/biz/the-pit-room-houston",
+    googleMapsURL: "https://www.google.com/maps/search/The+Pit+Room+Houston+TX",
+    websiteURL: "https://thepitroombbq.com/",
+    phone: "281-888-1929"
+  },
+  "Teotihuacan Mexican Cafe": {
+    yelpURL: "https://www.yelp.com/biz/teotihuacan-mexican-cafe-houston-4",
+    googleMapsURL: "https://www.google.com/maps/search/Teotihuacan+Mexican+Cafe+Houston+TX",
+    websiteURL: "https://teomexicancafe.com/",
+    phone: "713-426-4420"
+  },
+  "Chilosos Taco House": {
+    yelpURL: "https://www.yelp.com/biz/chilosos-taco-house-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Chilosos+Taco+House+Houston+TX"
+  },
+  "El Rey Taqueria": {
+    yelpURL: "https://www.yelp.com/biz/el-rey-taqueria-houston-3",
+    googleMapsURL: "https://www.google.com/maps/search/El+Rey+Taqueria+Houston+TX"
+  },
+  "La Calle Tacos (Midtown)": {
+    yelpURL: "https://www.yelp.com/biz/la-calle-tacos-houston",
+    googleMapsURL: "https://www.google.com/maps/search/La+Calle+Tacos+Midtown+Houston+TX",
+    websiteURL: "https://www.lacalletacos.com/"
+  },
+  "La Calle Tacos (Downtown)": {
+    yelpURL: "https://www.yelp.com/biz/la-calle-tacos-houston",
+    googleMapsURL: "https://www.google.com/maps/search/La+Calle+Tacos+Downtown+Houston+TX",
+    websiteURL: "https://www.lacalletacos.com/"
+  },
+  "Tio Trompo": {
+    yelpURL: "https://www.yelp.com/biz/tio-trompo-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Tio+Trompo+Houston+TX"
+  },
+  "Cochinita & Co": {
+    yelpURL: "https://www.yelp.com/biz/cochinita-and-co-houston",
+    googleMapsURL: "https://www.google.com/maps/search/Cochinita+Co+Houston+TX"
+  }
+};
+
+/**
+ * Update existing Firestore place documents with external link data.
+ * Looks up places by name and batch-updates with fields from PLACE_LINKS.
+ *
+ * Run from browser console:
+ *   1. Open chorizomejor.com and sign in
+ *   2. Paste seed-data.js in console
+ *   3. Call: updatePlaceLinks()
+ */
+async function updatePlaceLinks() {
+  const db = firebase.firestore();
+  let updated = 0;
+  let notFound = 0;
+
+  for (const [name, data] of Object.entries(PLACE_LINKS)) {
+    try {
+      const snap = await db.collection('places')
+        .where('name', '==', name)
+        .limit(1)
+        .get();
+
+      if (snap.empty) {
+        console.warn(`⚠️ "${name}" not found in Firestore, skipping`);
+        notFound++;
+        continue;
+      }
+
+      const docRef = snap.docs[0].ref;
+      await docRef.update(data);
+      updated++;
+      console.log(`✅ Updated "${name}" with ${Object.keys(data).length} fields`);
+    } catch (err) {
+      console.error(`❌ Failed to update "${name}":`, err.message);
+    }
+  }
+
+  console.log(`\n🌮 Done! Updated ${updated} spots, ${notFound} not found.`);
+  console.log('Hard-refresh a place detail page to see the new buttons.');
+}
+
 // If running in browser, make it available globally
 if (typeof window !== 'undefined') {
   window.seedAllPlaces = seedAllPlaces;
   window.HOUSTON_TACO_SPOTS = HOUSTON_TACO_SPOTS;
+  window.updatePlaceLinks = updatePlaceLinks;
+  window.PLACE_LINKS = PLACE_LINKS;
   console.log(`🌮 Seed data loaded! ${HOUSTON_TACO_SPOTS.length} spots ready. Run seedAllPlaces() to populate Firestore.`);
+  console.log(`🔗 Place links loaded! ${Object.keys(PLACE_LINKS).length} spots with external links. Run updatePlaceLinks() to update Firestore.`);
 }

@@ -654,6 +654,78 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: center;
   font-size: 64px;
+  overflow: hidden;
+  position: relative;
+}
+
+.place-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.place-banner-emoji {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+
+/* Place action links */
+.place-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.place-links:empty {
+  display: none;
+}
+
+.place-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-link-btn:active {
+  transform: scale(0.97);
+}
+
+.place-link-btn.primary {
+  grid-column: 1 / -1;
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.place-link-btn .link-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 400px) {
+  .place-links {
+    grid-template-columns: 1fr;
+  }
 }
 
 .place-hero-info h2 {

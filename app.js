@@ -988,16 +988,58 @@ async function loadPlaceDetail(placeId) {
     const tags = place.topTags || [];
     tagsEl.innerHTML = tags.map(t => `<span class="taco-tag">${escapeHtml(formatTag(t))}</span>`).join('');
 
-    // Banner
-    const banner = document.getElementById('place-photo-banner');
-    if (place.photoURL) {
-      banner.style.backgroundImage = `url(${place.photoURL})`;
-      banner.style.backgroundSize = 'cover';
-      banner.style.backgroundPosition = 'center';
-      banner.textContent = '';
-    } else {
-      banner.textContent = '🌮';
+    // Banner — fallback chain: imageURL → photoURL → Mapbox satellite → emoji
+    (() => {
+      const imgEl = document.getElementById('place-banner-img');
+      const emojiEl = document.querySelector('#place-photo-banner .place-banner-emoji');
+      const mbToken = (window.__mb || []).join('');
+      let src = null;
+      if (place.imageURL) {
+        src = place.imageURL;
+      } else if (place.photoURL) {
+        src = place.photoURL;
+      } else if (place.lat && place.lng && mbToken) {
+        src = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},15,0/600x200@2x?access_token=${mbToken}`;
+      }
+      if (src) {
+        imgEl.src = src;
+        imgEl.alt = place.name || 'Place photo';
+        imgEl.style.display = 'block';
+        emojiEl.style.display = 'none';
+      } else {
+        imgEl.style.display = 'none';
+        emojiEl.style.display = 'flex';
+      }
+    })();
+
+    // Action buttons
+    const linksEl = document.getElementById('place-links');
+    const buttons = [];
+    // Directions — always show if lat/lng
+    if (place.lat && place.lng) {
+      buttons.push(`<a class="place-link-btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}" target="_blank" rel="noopener"><span class="link-icon">📍</span> Directions</a>`);
     }
+    // Order Online
+    if (place.orderURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.orderURL)}" target="_blank" rel="noopener"><span class="link-icon">🛒</span> Order Online</a>`);
+    }
+    // Website
+    if (place.websiteURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.websiteURL)}" target="_blank" rel="noopener"><span class="link-icon">🌐</span> Website</a>`);
+    }
+    // Call
+    if (place.phone) {
+      buttons.push(`<a class="place-link-btn" href="tel:${escapeHtml(place.phone)}" ><span class="link-icon">📞</span> Call</a>`);
+    }
+    // Yelp
+    if (place.yelpURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.yelpURL)}" target="_blank" rel="noopener"><span class="link-icon">⭐</span> Yelp</a>`);
+    }
+    // Google
+    if (place.googleMapsURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.googleMapsURL)}" target="_blank" rel="noopener"><span class="link-icon">⭐</span> Google</a>`);
+    }
+    linksEl.innerHTML = buttons.join('');
 
     // Load reviews
     loadPlaceReviews(placeId);
