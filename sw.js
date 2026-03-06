@@ -3,7 +3,7 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v1';
+const CACHE_NAME = 'chorizo-mejor-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -54,16 +54,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For static assets: cache-first strategy
+  // For static assets: network-first strategy (ensures fresh deploys load immediately)
   if (STATIC_ASSETS.some(asset => url.pathname === asset || url.href === asset)) {
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        return cached || fetch(event.request).then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          return response;
-        });
-      })
+      fetch(event.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
