@@ -541,12 +541,12 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius-md);
   background: #E8E0D8;
   margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-light);
-  font-size: 14px;
   overflow: hidden;
+  position: relative;
+}
+
+#map .mapboxgl-canvas {
+  border-radius: var(--radius-md);
 }
 
 .place-card {

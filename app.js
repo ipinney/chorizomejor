@@ -604,37 +604,69 @@ function createPlaceCard(placeId, place) {
 }
 
 // ===================== MAP =====================
+let mapInstance = null;
+
 function initMap(places) {
   const mapEl = document.getElementById('map');
 
-  if (typeof google === 'undefined' || !google.maps) {
-    mapEl.innerHTML = '<span style="font-size:24px">📍</span> Map (enable Google Maps API)';
+  if (typeof mapboxgl === 'undefined') {
+    mapEl.innerHTML = '<span style="font-size:24px">📍</span> Map loading...';
     return;
   }
 
-  const houston = { lat: 29.7604, lng: -95.3698 };
-  const map = new google.maps.Map(mapEl, {
-    center: houston,
-    zoom: 11,
-    styles: [
-      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-      { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-    ]
-  });
+  // Mapbox public token (client-side, domain-restricted)
+  mapboxgl.accessToken = (window.__mb || []).join('');
+
+  // Reuse existing map instance if available (perf optimization from GeoIntel)
+  if (mapInstance) {
+    // Clear existing markers
+    document.querySelectorAll('.mapboxgl-marker').forEach(m => m.remove());
+  } else {
+    mapInstance = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-95.3698, 29.7604], // Houston
+      zoom: 11,
+      cooperativeGestures: true,
+      attributionControl: false
+    });
+
+    mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    mapInstance.addControl(new mapboxgl.AttributionControl({ compact: true }));
+  }
+
+  // Add markers for each place
+  const bounds = new mapboxgl.LngLatBounds();
+  let hasMarkers = false;
 
   places.forEach(place => {
     if (place.lat && place.lng) {
-      const marker = new google.maps.Marker({
-        position: { lat: place.lat, lng: place.lng },
-        map: map,
-        title: place.name,
-      });
+      hasMarkers = true;
 
-      marker.addListener('click', () => {
+      const el = document.createElement('div');
+      el.className = 'map-marker';
+      el.style.cssText = 'width:32px;height:32px;background:#D84315;border-radius:50%;border:3px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;';
+      el.textContent = '🌮';
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([place.lng, place.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(
+          `<strong style="font-size:14px">${place.name || 'Taco Spot'}</strong>` +
+          (place.avgRating ? `<br><span style="color:#D84315">★ ${place.avgRating.toFixed(1)}</span>` : '')
+        ))
+        .addTo(mapInstance);
+
+      el.addEventListener('click', () => {
         navigate('place', place.id);
       });
+
+      bounds.extend([place.lng, place.lat]);
     }
   });
+
+  if (hasMarkers) {
+    mapInstance.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+  }
 }
 
 // ===================== PLACE DETAIL =====================
