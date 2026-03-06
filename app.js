@@ -5,13 +5,12 @@
 
 // ===================== FIREBASE CONFIG =====================
 const firebaseConfig = {
-  apiKey: "AIzaSyDP4onqsMuQjaJQQtWPKxjM1EWXm5Aa8Oc",
-  authDomain: "chorizomejor.firebaseapp.com",
-  projectId: "chorizomejor",
-  storageBucket: "chorizomejor.firebasestorage.app",
-  messagingSenderId: "42155167020",
-  appId: "1:42155167020:web:fb8f4964b051af6e2cb089",
-  measurementId: "G-BVDSY8FGFB"
+  apiKey: "AIzaSyDf1s-6iPaJ5GmZgTgPnwLJsvwAj_7tYmA",
+  authDomain: "chorizomejor-app.firebaseapp.com",
+  projectId: "chorizomejor-app",
+  storageBucket: "chorizomejor-app.firebasestorage.app",
+  messagingSenderId: "616108968942",
+  appId: "1:616108968942:web:927666cffd3c0a15851cff"
 };
 
 firebase.initializeApp(firebaseConfig);
