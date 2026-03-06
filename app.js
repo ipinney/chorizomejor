@@ -666,17 +666,17 @@ async function loadPlaces() {
       return;
     }
 
+    allLoadedPlaces = places; // cache for search
     grid.innerHTML = '';
     places.forEach(place => {
       const card = createPlaceCard(place.id, place);
-      // Show distance if available
       if (place._distance && place._distance < 9999) {
         const distBadge = document.createElement('span');
         distBadge.className = 'distance-badge';
         distBadge.textContent = place._distance < 0.1
           ? 'Right here!'
           : place._distance.toFixed(1) + ' mi';
-        card.querySelector('.card')?.prepend(distBadge) || card.prepend(distBadge);
+        card.prepend(distBadge);
       }
       grid.appendChild(card);
     });
@@ -696,7 +696,32 @@ async function loadPlaces() {
 }
 
 function filterPlaces() {
+  document.getElementById('place-search').value = '';
   loadPlaces();
+}
+
+let allLoadedPlaces = []; // cache for search filtering
+
+function searchPlaces(query) {
+  const grid = document.getElementById('places-grid');
+  const q = query.toLowerCase().trim();
+  if (!q) {
+    // Show all
+    grid.innerHTML = '';
+    allLoadedPlaces.forEach(p => grid.appendChild(createPlaceCard(p.id, p)));
+    return;
+  }
+  const filtered = allLoadedPlaces.filter(p =>
+    (p.name && p.name.toLowerCase().includes(q)) ||
+    (p.address && p.address.toLowerCase().includes(q)) ||
+    (p.neighborhood && formatNeighborhood(p.neighborhood).toLowerCase().includes(q))
+  );
+  grid.innerHTML = '';
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><span class="empty-icon">🔍</span><h3>No matches</h3><p>Try a different search term</p></div>';
+    return;
+  }
+  filtered.forEach(p => grid.appendChild(createPlaceCard(p.id, p)));
 }
 
 function createPlaceCard(placeId, place) {
@@ -707,10 +732,21 @@ function createPlaceCard(placeId, place) {
 
   const score = place.avgOverall ? place.avgOverall.toFixed(1) : '-';
   const typeEmoji = { truck: '🚚', restaurant: '🏪', bakery: '🍞', 'gas-station': '⛽' };
+  const mbToken = (window.__mb || []).join('');
+
+  let imgHtml;
+  if (place.photoURL) {
+    imgHtml = `<img class="place-card-img" src="${escapeHtml(place.photoURL)}" alt="${escapeHtml(place.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
+  } else if (place.lat && place.lng && mbToken) {
+    // Use Mapbox satellite thumbnail as placeholder
+    imgHtml = `<img class="place-card-img" src="https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},16,0/72x72@2x?access_token=${mbToken}" alt="${escapeHtml(place.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
+  } else {
+    imgHtml = `<div class="place-card-img">${typeEmoji[place.type] || '🌮'}</div>`;
+  }
 
   card.innerHTML = `
     <div class="place-card">
-      <div class="place-card-img">${typeEmoji[place.type] || '🌮'}</div>
+      ${imgHtml}
       <div class="place-card-info">
         <div class="place-card-name">${escapeHtml(place.name)}</div>
         <div class="place-card-address">${escapeHtml(place.address || '')}</div>
@@ -728,37 +764,149 @@ function createPlaceCard(placeId, place) {
 
 // ===================== MAP =====================
 let mapInstance = null;
+let mapMarkers = [];
+let mapReady = false;
+let pendingPlaces = null;
 
-function initMap(places) {
+// Neighborhood polygon coordinates [lng, lat] rings
+const HOOD_POLYGONS = {
+  'downtown': [[-95.375,-95.355,-95.355,-95.375,-95.375],[29.752,29.752,29.770,29.770,29.752]],
+  'eado': [[-95.365,-95.340,-95.340,-95.365,-95.365],[29.738,29.738,29.756,29.756,29.738]],
+  'east-end': [[-95.340,-95.280,-95.280,-95.340,-95.340],[29.710,29.710,29.760,29.760,29.710]],
+  'heights': [[-95.425,-95.385,-95.385,-95.425,-95.425],[29.773,29.773,29.820,29.820,29.773]],
+  'montrose': [[-95.415,-95.380,-95.380,-95.415,-95.415],[29.730,29.730,29.753,29.753,29.730]],
+  'midtown': [[-95.385,-95.370,-95.370,-95.385,-95.385],[29.730,29.730,29.753,29.753,29.730]],
+  'washington-ave': [[-95.435,-95.370,-95.370,-95.435,-95.435],[29.763,29.763,29.778,29.778,29.763]],
+  'river-oaks': [[-95.430,-95.395,-95.395,-95.430,-95.430],[29.718,29.718,29.763,29.763,29.718]],
+  'northside': [[-95.395,-95.355,-95.355,-95.395,-95.395],[29.790,29.790,29.830,29.830,29.790]],
+  'third-ward': [[-95.380,-95.345,-95.345,-95.380,-95.380],[29.720,29.720,29.752,29.752,29.720]],
+  'galleria': [[-95.495,-95.450,-95.450,-95.495,-95.495],[29.715,29.715,29.745,29.745,29.715]],
+  'spring-branch': [[-95.520,-95.470,-95.470,-95.520,-95.520],[29.790,29.790,29.820,29.820,29.790]],
+  'bellaire': [[-95.510,-95.470,-95.470,-95.510,-95.510],[29.690,29.690,29.720,29.720,29.690]],
+  'memorial': [[-95.550,-95.435,-95.435,-95.550,-95.550],[29.750,29.750,29.790,29.790,29.750]],
+  'pasadena': [[-95.360,-95.180,-95.180,-95.360,-95.360],[29.640,29.640,29.710,29.710,29.640]],
+  'katy': [[-95.760,-95.680,-95.680,-95.760,-95.760],[29.710,29.710,29.800,29.800,29.710]],
+  'sugar-land': [[-95.650,-95.570,-95.570,-95.650,-95.650],[29.550,29.550,29.650,29.650,29.550]],
+  'spring': [[-95.450,-95.350,-95.350,-95.450,-95.450],[30.020,30.020,30.120,30.120,30.020]]
+};
+
+function buildHoodGeoJSON() {
+  const features = Object.entries(HOOD_POLYGONS).map(([name, [lngs, lats]]) => {
+    const coords = lngs.map((lng, i) => [lng, lats[i]]);
+    return {
+      type: 'Feature',
+      properties: { name, label: formatNeighborhood(name) },
+      geometry: { type: 'Polygon', coordinates: [coords] }
+    };
+  });
+  return { type: 'FeatureCollection', features };
+}
+
+function waitForMapbox() {
+  return new Promise(resolve => {
+    if (typeof mapboxgl !== 'undefined') { resolve(); return; }
+    const check = setInterval(() => {
+      if (typeof mapboxgl !== 'undefined') { clearInterval(check); resolve(); }
+    }, 100);
+    setTimeout(() => { clearInterval(check); resolve(); }, 5000);
+  });
+}
+
+async function initMap(places) {
   const mapEl = document.getElementById('map');
 
+  await waitForMapbox();
+
   if (typeof mapboxgl === 'undefined') {
-    mapEl.innerHTML = '<span style="font-size:24px">📍</span> Map loading...';
+    mapEl.innerHTML = '<span style="font-size:24px">📍</span> Map unavailable';
     return;
   }
 
-  // Mapbox public token (client-side, domain-restricted)
   mapboxgl.accessToken = (window.__mb || []).join('');
 
-  // Reuse existing map instance if available (perf optimization from GeoIntel)
-  if (mapInstance) {
-    // Clear existing markers
-    document.querySelectorAll('.mapboxgl-marker').forEach(m => m.remove());
-  } else {
+  // Clear old markers
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
+
+  if (!mapInstance) {
     mapInstance = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-95.3698, 29.7604], // Houston
+      center: [-95.3698, 29.7604],
       zoom: 11,
       cooperativeGestures: true,
-      attributionControl: false
+      attributionControl: false,
+      fadeDuration: 0
     });
 
     mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
     mapInstance.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    mapInstance.on('load', () => {
+      mapReady = true;
+      addNeighborhoodLayers();
+      if (pendingPlaces) { addMarkers(pendingPlaces); pendingPlaces = null; }
+    });
   }
 
-  // Add markers for each place
+  if (mapReady) {
+    addMarkers(places);
+  } else {
+    pendingPlaces = places;
+  }
+}
+
+function addNeighborhoodLayers() {
+  if (!mapInstance || mapInstance.getSource('neighborhoods')) return;
+
+  mapInstance.addSource('neighborhoods', {
+    type: 'geojson',
+    data: buildHoodGeoJSON()
+  });
+
+  mapInstance.addLayer({
+    id: 'hood-fill',
+    type: 'fill',
+    source: 'neighborhoods',
+    paint: {
+      'fill-color': '#D84315',
+      'fill-opacity': 0.06
+    }
+  }, mapInstance.getStyle().layers.find(l => l.type === 'symbol')?.id);
+
+  mapInstance.addLayer({
+    id: 'hood-outline',
+    type: 'line',
+    source: 'neighborhoods',
+    paint: {
+      'line-color': '#D84315',
+      'line-width': 1.5,
+      'line-opacity': 0.4,
+      'line-dasharray': [4, 3]
+    }
+  });
+
+  mapInstance.addLayer({
+    id: 'hood-labels',
+    type: 'symbol',
+    source: 'neighborhoods',
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-size': 11,
+      'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+      'text-anchor': 'center',
+      'text-allow-overlap': false
+    },
+    paint: {
+      'text-color': '#BF360C',
+      'text-halo-color': '#fff',
+      'text-halo-width': 1.5,
+      'text-opacity': 0.7
+    }
+  });
+}
+
+function addMarkers(places) {
   const bounds = new mapboxgl.LngLatBounds();
   let hasMarkers = false;
 
@@ -768,27 +916,31 @@ function initMap(places) {
 
       const el = document.createElement('div');
       el.className = 'map-marker';
-      el.style.cssText = 'width:32px;height:32px;background:#D84315;border-radius:50%;border:3px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;';
+      el.style.cssText = 'width:28px;height:28px;background:#D84315;border-radius:50%;border:2px solid #fff;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;';
       el.textContent = '🌮';
+
+      const popup = new mapboxgl.Popup({ offset: 20, closeButton: false }).setHTML(
+        `<strong style="font-size:13px">${place.name || 'Taco Spot'}</strong>` +
+        (place.avgOverall ? `<br><span style="color:#D84315">★ ${place.avgOverall.toFixed(1)}</span>` : '')
+      );
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([place.lng, place.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(
-          `<strong style="font-size:14px">${place.name || 'Taco Spot'}</strong>` +
-          (place.avgRating ? `<br><span style="color:#D84315">★ ${place.avgRating.toFixed(1)}</span>` : '')
-        ))
+        .setPopup(popup)
         .addTo(mapInstance);
 
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
         navigate('place', place.id);
       });
 
+      mapMarkers.push(marker);
       bounds.extend([place.lng, place.lat]);
     }
   });
 
   if (hasMarkers) {
-    mapInstance.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+    mapInstance.fitBounds(bounds, { padding: 50, maxZoom: 14, duration: 500 });
   }
 }
 

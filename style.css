@@ -549,6 +549,51 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius-md);
 }
 
+.search-bar-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.search-bar-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+#place-search {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: var(--radius-md);
+  border: 2px solid #E8E0D8;
+  background: var(--color-surface);
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+#place-search:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(216,67,21,0.1);
+}
+
+#place-search::placeholder {
+  color: var(--color-text-light);
+}
+
+.place-card-img[src] {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .place-card {
   display: flex;
   gap: 12px;

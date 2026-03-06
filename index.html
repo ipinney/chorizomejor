@@ -26,7 +26,7 @@
   <!-- Mapbox GL JS -->
   <script>window.__mb=['pk.eyJ1IjoiaXBpbm5leTIi','LCJhIjoiY203M3Q5YTYwMDJ5cDJycTh1MHJscHA1ZSJ9','.eg3CEbw2FI2WSUUc1N9CfA'];</script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+  <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ranchers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -113,6 +113,10 @@
         </div>
       </div>
       <div id="map"></div>
+      <div class="search-bar-wrapper">
+        <span class="material-icons-round search-icon">search</span>
+        <input type="text" id="place-search" placeholder="Search taco spots..." oninput="searchPlaces(this.value)" />
+      </div>
       <div id="places-grid" class="card-list"></div>
     </section>
 
