@@ -1031,15 +1031,20 @@ async function loadPlaceDetail(placeId) {
     if (place.phone) {
       buttons.push(`<a class="place-link-btn" href="tel:${escapeHtml(place.phone)}" ><span class="link-icon">📞</span> Call</a>`);
     }
-    // Yelp
+    // Yelp — branded static link (no live rating due to API cost)
     if (place.yelpURL) {
-      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.yelpURL)}" target="_blank" rel="noopener"><span class="link-icon">⭐</span> Yelp</a>`);
+      buttons.push(`<a class="place-link-btn yelp-btn" href="${escapeHtml(place.yelpURL)}" target="_blank" rel="noopener"><svg class="brand-icon" viewBox="0 0 24 24" width="20" height="20"><path fill="#FF1A1A" d="M12.14 11.26c.15.07.09.42.09.42l-1.67 6.62s-.08.29-.27.28c-.12-.01-.26-.15-.26-.15L6.5 14.1s-.2-.24-.15-.4c.06-.17.32-.22.32-.22l5.11-2.3s.22-.1.36.08zm-1.7-1.76c-.07.16-.42.12-.42.12l-6.6-1.67s-.28-.09-.27-.28c.01-.12.16-.26.16-.26l4.33-3.53s.24-.2.4-.14c.17.06.2.32.2.32l1.28 5.02s.07.25-.08.42zM11.5 8.3c.17.02.28.36.28.36l1.69 6.6s.06.29-.1.38c-.1.06-.28 0-.28 0l-5.19-2.56s-.27-.12-.3-.3c0-.19.2-.34.2-.34L11.1 8.3s.2-.15.38-.01h.02zm2.12 3.72c-.02-.18.3-.32.3-.32l6.04-3.12s.26-.15.37-.02c.07.08.08.28.08.28l-.44 5.56s-.03.3-.16.38c-.15.08-.35-.1-.35-.1l-5.6-2.34s-.24-.1-.24-.32zm.52-1.98c.16.06.17.41.17.41l.2 6.83s0 .3-.17.34c-.11.03-.28-.08-.28-.08l-4.02-3.9s-.2-.22-.17-.39c.04-.18.28-.25.28-.25l3.63-3s.2-.15.36.04z"/></svg><span class="ext-label">Yelp</span></a>`);
     }
-    // Google
+    // Google — branded with live rating (loaded async)
     if (place.googleMapsURL) {
-      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.googleMapsURL)}" target="_blank" rel="noopener"><span class="link-icon">⭐</span> Google</a>`);
+      buttons.push(`<a class="place-link-btn google-btn" id="google-link" href="${escapeHtml(place.googleMapsURL)}" target="_blank" rel="noopener"><svg class="brand-icon" viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg><span class="rating-slot" id="google-rating-slot"><span class="rating-loading"></span></span></a>`);
     }
     linksEl.innerHTML = buttons.join('');
+
+    // Fetch live Google rating (async, non-blocking)
+    if (place.lat && place.lng && place.googleMapsURL) {
+      fetchLiveRatings(place);
+    }
 
     // Load reviews
     loadPlaceReviews(placeId);
@@ -1853,6 +1858,48 @@ function showToast(message) {
 }
 
 // ===================== UTILITIES =====================
+// Fetch live Google rating from the serverless API and update the UI
+async function fetchLiveRatings(place) {
+  const googleSlot = document.getElementById('google-rating-slot');
+  try {
+    const params = new URLSearchParams({
+      name: place.name,
+      lat: place.lat,
+      lng: place.lng
+    });
+    const res = await fetch(`/api/ratings?${params}`);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+
+    if (googleSlot && data.google && data.google.rating) {
+      googleSlot.innerHTML =
+        `<span class="ext-rating">${data.google.rating}</span>` +
+        `<span class="ext-stars">${renderStars(data.google.rating, 'google')}</span>` +
+        (data.google.reviewCount ? `<span class="ext-count">(${data.google.reviewCount.toLocaleString()})</span>` : '');
+      // Update link to the canonical Google Maps URL
+      const googleLink = document.getElementById('google-link');
+      if (googleLink && data.google.url) googleLink.href = data.google.url;
+    } else if (googleSlot) {
+      googleSlot.innerHTML = '<span class="ext-label">Google</span>';
+    }
+  } catch (e) {
+    if (googleSlot) googleSlot.innerHTML = '<span class="ext-label">Google</span>';
+  }
+}
+
+// Render star icons for external ratings (Google / Yelp)
+function renderStars(rating, platform) {
+  const color = platform === 'yelp' ? '#FF1A1A' : '#FBBC05';
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.3 ? 1 : 0;
+  const empty = 5 - full - half;
+  const uid = Math.random().toString(36).slice(2, 6);
+  const s = `<svg viewBox="0 0 12 12" width="12" height="12"><path fill="${color}" d="M6 0l1.76 3.57 3.94.57-2.85 2.78.67 3.93L6 8.88 2.48 10.85l.67-3.93L.3 4.14l3.94-.57z"/></svg>`;
+  const h = `<svg viewBox="0 0 12 12" width="12" height="12"><defs><linearGradient id="hg${uid}"><stop offset="50%" stop-color="${color}"/><stop offset="50%" stop-color="#ddd"/></linearGradient></defs><path fill="url(#hg${uid})" d="M6 0l1.76 3.57 3.94.57-2.85 2.78.67 3.93L6 8.88 2.48 10.85l.67-3.93L.3 4.14l3.94-.57z"/></svg>`;
+  const e = '<svg viewBox="0 0 12 12" width="12" height="12"><path fill="#ddd" d="M6 0l1.76 3.57 3.94.57-2.85 2.78.67 3.93L6 8.88 2.48 10.85l.67-3.93L.3 4.14l3.94-.57z"/></svg>';
+  return s.repeat(full) + (half ? h : '') + e.repeat(empty);
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   const div = document.createElement('div');

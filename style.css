@@ -722,6 +722,62 @@ a:hover { text-decoration: underline; }
   flex-shrink: 0;
 }
 
+/* Branded Yelp / Google buttons */
+.yelp-btn, .google-btn {
+  gap: 8px;
+}
+
+.brand-icon {
+  flex-shrink: 0;
+}
+
+.rating-slot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ext-rating {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.ext-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  line-height: 1;
+}
+
+.ext-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.ext-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Loading shimmer for rating slot */
+.rating-loading {
+  display: inline-block;
+  width: 60px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg-card) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @media (max-width: 400px) {
   .place-links {
     grid-template-columns: 1fr;
