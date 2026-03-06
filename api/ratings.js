@@ -20,8 +20,8 @@ const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-  // Edge / CDN cache for 7 days, serve stale for 1 day while revalidating
-  res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate=86400');
+  // Default: no CDN cache (will be upgraded on success)
+  res.setHeader('Cache-Control', 'no-cache');
 
   const { name, lat, lng } = req.query;
 
@@ -89,6 +89,8 @@ export default async function handler(req, res) {
   // Only cache successful results (not errors)
   if (result.google) {
     cache.set(cacheKey, { ts: Date.now(), data: result });
+    // Edge / CDN cache for 7 days, serve stale for 1 day while revalidating
+    res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate=86400');
   }
 
   return res.status(200).json(result);
