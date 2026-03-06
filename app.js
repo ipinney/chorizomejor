@@ -1346,20 +1346,24 @@ async function loadLeaderboard() {
     const neighborhood = document.getElementById('leaderboard-neighborhood').value;
     const ratingField = `avg${capitalize(leaderboardTab)}`;
 
-    let query = db.collection('places')
-      .orderBy(ratingField, 'desc')
-      .limit(20);
+    let query = db.collection('places');
+    let places;
 
     if (neighborhood) {
-      query = db.collection('places')
-        .where('neighborhood', '==', neighborhood)
-        .orderBy(ratingField, 'desc')
-        .limit(20);
+      // Filter by neighborhood – fetch then sort client-side
+      // (avoids needing composite Firestore indexes for each sort field)
+      query = query.where('neighborhood', '==', neighborhood).limit(100);
+      const snap = await query.get();
+      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      places.sort((a, b) => (b[ratingField] || 0) - (a[ratingField] || 0));
+      places = places.slice(0, 20);
+    } else {
+      query = query.orderBy(ratingField, 'desc').limit(20);
+      const snap = await query.get();
+      places = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    const snap = await query.get();
-
-    if (snap.empty) {
+    if (places.length === 0) {
       list.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">🏆</span>
@@ -1372,20 +1376,19 @@ async function loadLeaderboard() {
 
     list.innerHTML = '';
     let rank = 1;
-    snap.forEach(doc => {
-      const place = doc.data();
-      const score = place[ratingField] ? place[ratingField].toFixed(1) : '-';
+    places.forEach(p => {
+      const score = p[ratingField] ? p[ratingField].toFixed(1) : '-';
       const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
       const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
 
       const item = document.createElement('div');
       item.className = 'leaderboard-item';
-      item.onclick = () => navigate('place', doc.id);
+      item.onclick = () => navigate('place', p.id);
       item.innerHTML = `
         <div class="leaderboard-rank ${rankClass}">${medal}</div>
         <div class="leaderboard-info">
-          <div class="leaderboard-name">${escapeHtml(place.name)}</div>
-          <div class="leaderboard-neighborhood">${formatNeighborhood(place.neighborhood)} · ${place.reviewCount || 0} reviews</div>
+          <div class="leaderboard-name">${escapeHtml(p.name)}</div>
+          <div class="leaderboard-neighborhood">${formatNeighborhood(p.neighborhood)} · ${p.reviewCount || 0} reviews</div>
         </div>
         <div class="leaderboard-score">${score}</div>
       `;
@@ -1393,17 +1396,16 @@ async function loadLeaderboard() {
       rank++;
     });
 
-    // Monthly leaders - same query limited to 5
-    const top5 = snap.docs.slice(0, 5);
-    top5.forEach((doc, i) => {
-      const place = doc.data();
-      const score = place[ratingField] ? place[ratingField].toFixed(1) : '-';
+    // Monthly leaders - top 5
+    const top5 = places.slice(0, 5);
+    top5.forEach((p, i) => {
+      const score = p[ratingField] ? p[ratingField].toFixed(1) : '-';
       const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
       monthlyList.innerHTML += `
-        <div class="leaderboard-item" onclick="navigate('place','${doc.id}')">
+        <div class="leaderboard-item" onclick="navigate('place','${p.id}')">
           <div class="leaderboard-rank">${medals[i]}</div>
           <div class="leaderboard-info">
-            <div class="leaderboard-name">${escapeHtml(place.name)}</div>
+            <div class="leaderboard-name">${escapeHtml(p.name)}</div>
           </div>
           <div class="leaderboard-score">${score}</div>
         </div>
