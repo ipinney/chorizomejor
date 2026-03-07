@@ -308,6 +308,14 @@ function handleRoute() {
       showView('view-place');
       if (id) loadPlaceDetail(id);
       break;
+    case 'stories':
+      showView('view-stories');
+      loadStories();
+      break;
+    case 'story':
+      showView('view-story');
+      if (id) loadStoryDetail(id);
+      break;
     case 'auth':
       showView('view-auth');
       break;
@@ -3152,4 +3160,133 @@ function getTimeAgo(date) {
   if (days < 7) return `${days}d ago`;
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
   return date.toLocaleDateString();
+}
+
+// ===================== BETO'S TABLE — STORIES =====================
+
+async function loadStories() {
+  const list = document.getElementById('stories-list');
+  const empty = document.getElementById('stories-empty');
+  list.innerHTML = '<div class="loading">Loading stories…</div>';
+  empty.classList.add('hidden');
+
+  try {
+    const snap = await db.collection('stories')
+      .where('status', '==', 'published')
+      .orderBy('publishedAt', 'desc')
+      .limit(20)
+      .get();
+
+    if (snap.empty) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    list.innerHTML = snap.docs.map(doc => {
+      const s = doc.data();
+      const date = s.publishedAt?.toDate ? s.publishedAt.toDate() : new Date(s.publishedAt);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const excerpt = s.excerpt || (s.body ? s.body.substring(0, 180) + '…' : '');
+      const heroImg = s.heroImage || '';
+      return `
+        <div class="story-card" onclick="navigate('story/${doc.id}')">
+          ${heroImg ? `<div class="story-card-img" style="background-image:url('${heroImg}')"></div>` : ''}
+          <div class="story-card-body">
+            <span class="story-card-label">BETO'S TABLE</span>
+            <h3 class="story-card-title">${s.title}</h3>
+            <p class="story-card-excerpt">${excerpt}</p>
+            <div class="story-card-meta">
+              <img class="beto-avatar" src="/images/beto-garza.jpg" alt="Beto Garza" onerror="this.style.display='none'">
+              <span>By Beto Garza</span>
+              <span>${dateStr}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error loading stories:', err);
+    list.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">Could not load stories.</p>';
+  }
+}
+
+async function loadStoryDetail(slug) {
+  const container = document.getElementById('story-detail');
+  container.innerHTML = '<div class="loading">Loading story…</div>';
+
+  try {
+    // Try by document ID first (slug)
+    let doc = await db.collection('stories').doc(slug).get();
+
+    // Fallback: query by slug field
+    if (!doc.exists) {
+      const snap = await db.collection('stories').where('slug', '==', slug).limit(1).get();
+      if (!snap.empty) doc = snap.docs[0];
+    }
+
+    if (!doc || !doc.exists) {
+      container.innerHTML = '<p style="text-align:center;padding:60px;color:#999;">Story not found.</p>';
+      return;
+    }
+
+    const s = doc.data();
+    const date = s.publishedAt?.toDate ? s.publishedAt.toDate() : new Date(s.publishedAt);
+    const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    // Convert markdown-ish body to HTML (basic conversion)
+    const bodyHtml = renderStoryBody(s.body || '');
+
+    container.innerHTML = `
+      <button class="story-back" onclick="navigate('stories')">
+        <span class="material-icons-round">arrow_back</span> All Stories
+      </button>
+      <article class="story-full">
+        <div class="story-label">BETO'S TABLE</div>
+        <h1 class="story-title">${s.title}</h1>
+        <div class="story-byline">
+          <img class="beto-avatar-lg" src="/images/beto-garza.jpg" alt="Beto Garza" onerror="this.style.display='none'">
+          <div>
+            <div class="story-byline-name">Beto Garza</div>
+            <div class="story-meta">${dateStr}</div>
+          </div>
+        </div>
+        ${s.heroImage ? `<img class="story-hero-img" src="${s.heroImage}" alt="${s.title}">` : ''}
+        <div class="story-body">${bodyHtml}</div>
+        ${s.placeId ? `<div class="story-place-link"><button class="btn-primary" onclick="navigate('place/${s.placeId}')">View on Chorizo Mejor →</button></div>` : ''}
+        <div class="story-footer">
+          <p><em>Every taco has a story. Pull up a chair.</em></p>
+        </div>
+      </article>
+    `;
+  } catch (err) {
+    console.error('Error loading story:', err);
+    container.innerHTML = '<p style="text-align:center;padding:60px;color:#999;">Error loading story.</p>';
+  }
+}
+
+function renderStoryBody(md) {
+  // Simple markdown-to-HTML: headings, paragraphs, bold, italic, links, lists, hr
+  let html = md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>');
+
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+  // Wrap remaining plain lines in <p>
+  html = html.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<hr') || trimmed.startsWith('<ul') || trimmed.startsWith('<li') || trimmed.startsWith('</')) return trimmed;
+    return `<p>${trimmed}</p>`;
+  }).join('\n');
+
+  return html;
 }

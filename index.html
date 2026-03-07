@@ -39,7 +39,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-  <link rel="stylesheet" href="style.css?v=38" />
+  <link rel="stylesheet" href="style.css?v=39" />
   <!-- Mapbox GL JS -->
   <script>window.__mb=['pk.eyJ1IjoiaXBpbm5leTIi','LCJhIjoiY203M3Q5YTYwMDJ5cDJycTh1MHJscHA1ZSJ9','.eg3CEbw2FI2WSUUc1N9CfA'];</script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
@@ -430,6 +430,25 @@
       </div>
     </section>
 
+    <!-- ===== STORIES (Beto's Table) ===== -->
+    <section id="view-stories" class="view hidden">
+      <div class="stories-header">
+        <h2>Beto's Table</h2>
+        <p class="stories-subtitle">Every taco has a story. Pull up a chair.</p>
+      </div>
+      <div id="stories-list" class="card-list"></div>
+      <div id="stories-empty" class="empty-state hidden">
+        <span class="empty-icon">📝</span>
+        <h3>Stories coming soon</h3>
+        <p>Weekly taco spotlights launching soon. Subscribe to get notified.</p>
+      </div>
+    </section>
+
+    <!-- ===== SINGLE STORY DETAIL ===== -->
+    <section id="view-story" class="view hidden">
+      <div id="story-detail" class="story-article"></div>
+    </section>
+
   </main>
 
   <!-- ===================== ADD REVIEW MODAL ===================== -->
@@ -645,6 +664,10 @@
       <span class="material-icons-round">leaderboard</span>
       <span>Rankings</span>
     </button>
+    <button class="nav-btn" onclick="navigate('stories')" data-view="stories">
+      <span class="material-icons-round">auto_stories</span>
+      <span>Stories</span>
+    </button>
     <button class="nav-btn" onclick="navigate('toty')" data-view="toty">
       <span class="material-icons-round">emoji_events</span>
       <span>TOTY</span>
@@ -679,6 +702,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="neighborhoods.js"></script>
-  <script src="app.js?v=38"></script>
+  <script src="app.js?v=39"></script>
 </body>
 </html>
