@@ -531,10 +531,10 @@ function createReviewCard(reviewId, review) {
       ${waitHTML}
     </div>
     <div class="card-actions">
-      <button class="card-action-btn ${review.likes && currentUser && review.likes.includes(currentUser.uid) ? 'liked' : ''}"
+      <button class="card-action-btn ${Array.isArray(review.likes) && currentUser && review.likes.includes(currentUser.uid) ? 'liked' : ''}"
               onclick="toggleLike('${reviewId}', this)">
         <span class="material-icons-round" style="font-size:18px">favorite</span>
-        <span class="like-count">${(review.likes || []).length || ''}</span>
+        <span class="like-count">${Array.isArray(review.likes) ? (review.likes.length || '') : (review.likes || '')}</span>
       </button>
       <button class="card-action-btn" onclick="toggleComments('${reviewId}', this)">
         <span class="material-icons-round" style="font-size:18px">chat_bubble_outline</span>
