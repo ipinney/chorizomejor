@@ -356,9 +356,14 @@
         </div>
       </div>
       <div class="place-tags" id="place-tags"></div>
-      <button id="btn-add-review" class="btn-primary" onclick="openReviewModal()">
-        <span class="material-icons-round">rate_review</span> Add Review
-      </button>
+      <div class="place-action-row">
+        <button id="btn-add-review" class="btn-primary" onclick="openReviewModal()">
+          <span class="material-icons-round">rate_review</span> Add Review
+        </button>
+        <button id="btn-fav-place" class="btn-fav-place" onclick="toggleFavoritePlace()">
+          <span class="material-icons-round" id="fav-place-icon">favorite_border</span>
+        </button>
+      </div>
       <h3>Reviews</h3>
       <div id="place-reviews" class="card-list"></div>
     </section>

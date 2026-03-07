@@ -160,6 +160,44 @@ a:hover { text-decoration: underline; }
 .btn-primary:hover { background: var(--color-primary-dark); }
 .btn-primary:active { transform: scale(0.97); }
 
+/* Place action row (Add Review + Favorite) */
+.place-action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 16px 0;
+}
+.place-action-row .btn-primary {
+  flex: 1;
+}
+.btn-fav-place {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-fav-place:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(216, 67, 21, 0.08);
+}
+.btn-fav-place.is-fav {
+  border-color: #e53935;
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.08);
+}
+.btn-fav-place.is-fav:hover {
+  background: rgba(229, 57, 53, 0.15);
+}
+
 .btn-secondary {
   background: var(--color-surface);
   color: var(--color-text);

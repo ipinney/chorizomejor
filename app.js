@@ -420,7 +420,8 @@ async function loadFeed() {
   feedEmpty.classList.add('hidden');
 
   try {
-    let query = db.collection('reviews').orderBy('createdAt', 'desc').limit(20);
+    let query = db.collection('reviews').limit(50);
+    let needsClientSort = true;
 
     if (feedTab === 'following' && currentUser) {
       // Get users the current user follows
@@ -433,7 +434,7 @@ async function loadFeed() {
         const batch = followingIds.slice(0, 30);
         query = db.collection('reviews')
           .where('userId', 'in', batch)
-          .orderBy('createdAt', 'desc').limit(20);
+          .limit(50);
       } else {
         feedList.innerHTML = '';
         feedEmpty.classList.remove('hidden');
@@ -449,8 +450,15 @@ async function loadFeed() {
       return;
     }
 
+    // Sort client-side to avoid composite index requirement
+    const sortedDocs = snap.docs.sort((a, b) => {
+      const aTime = a.data().createdAt?.toMillis?.() || 0;
+      const bTime = b.data().createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    }).slice(0, 20);
+
     feedList.innerHTML = '';
-    for (const doc of snap.docs) {
+    for (const doc of sortedDocs) {
       const review = doc.data();
       feedList.appendChild(createReviewCard(doc.id, review));
     }
@@ -1147,6 +1155,9 @@ async function loadPlaceDetail(placeId) {
       fetchLiveRatings(place);
     }
 
+    // Check if user has favorited this place
+    updateFavButton(placeId);
+
     // Load reviews
     loadPlaceReviews(placeId);
   } catch (err) {
@@ -1155,14 +1166,86 @@ async function loadPlaceDetail(placeId) {
   }
 }
 
+// ===================== PLACE FAVORITES =====================
+async function updateFavButton(placeId) {
+  const icon = document.getElementById('fav-place-icon');
+  const btn = document.getElementById('btn-fav-place');
+  if (!icon || !btn) return;
+
+  if (!currentUser) {
+    icon.textContent = 'favorite_border';
+    btn.classList.remove('is-fav');
+    return;
+  }
+
+  try {
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    const favPlaces = userDoc.data()?.favoritePlaces || [];
+    if (favPlaces.includes(placeId)) {
+      icon.textContent = 'favorite';
+      btn.classList.add('is-fav');
+    } else {
+      icon.textContent = 'favorite_border';
+      btn.classList.remove('is-fav');
+    }
+  } catch {
+    icon.textContent = 'favorite_border';
+    btn.classList.remove('is-fav');
+  }
+}
+
+async function toggleFavoritePlace() {
+  if (!currentUser) {
+    navigate('auth');
+    return;
+  }
+  if (!currentPlaceId) return;
+
+  const icon = document.getElementById('fav-place-icon');
+  const btn = document.getElementById('btn-fav-place');
+  const userRef = db.collection('users').doc(currentUser.uid);
+
+  try {
+    const userDoc = await userRef.get();
+    const favPlaces = userDoc.data()?.favoritePlaces || [];
+    const isFav = favPlaces.includes(currentPlaceId);
+
+    if (isFav) {
+      // Remove from favorites
+      await userRef.update({
+        favoritePlaces: firebase.firestore.FieldValue.arrayRemove(currentPlaceId)
+      });
+      icon.textContent = 'favorite_border';
+      btn.classList.remove('is-fav');
+      showToast('Removed from favorites');
+    } else {
+      // Add to favorites
+      await userRef.update({
+        favoritePlaces: firebase.firestore.FieldValue.arrayUnion(currentPlaceId)
+      });
+      icon.textContent = 'favorite';
+      btn.classList.add('is-fav');
+      showToast('Added to favorites!');
+
+      // Award XP for first favorite
+      if (favPlaces.length === 0) {
+        await awardXP(currentUser.uid, 3, 'firstFavorite');
+      }
+    }
+  } catch (err) {
+    console.error('Favorite error:', err);
+    showToast('Could not update favorite');
+  }
+}
+
 async function loadPlaceReviews(placeId) {
   const list = document.getElementById('place-reviews');
   list.innerHTML = '<div class="spinner"></div>';
 
   try {
+    // Fetch without orderBy to avoid composite index; sort client-side
     const snap = await db.collection('reviews')
       .where('placeId', '==', placeId)
-      .orderBy('createdAt', 'desc')
       .limit(30).get();
 
     list.innerHTML = '';
@@ -1171,7 +1254,12 @@ async function loadPlaceReviews(placeId) {
       return;
     }
 
-    snap.forEach(doc => {
+    const sortedDocs = snap.docs.sort((a, b) => {
+      const aTime = a.data().createdAt?.toMillis?.() || 0;
+      const bTime = b.data().createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+    sortedDocs.forEach(doc => {
       list.appendChild(createReviewCard(doc.id, doc.data()));
     });
   } catch (err) {
