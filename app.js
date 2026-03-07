@@ -533,7 +533,8 @@ function createReviewCard(reviewId, review) {
   const card = document.createElement('div');
   card.className = 'card';
 
-  const overallScore = review.ratings?.overall || '-';
+  const rawOverall = review.ratings?.overall;
+  const overallScore = rawOverall ? Number(rawOverall).toFixed(2) : '-';
   const timeAgo = review.createdAt ? getTimeAgo(review.createdAt.toDate()) : 'just now';
 
   // Only show real uploaded photos, not avatar/placeholder URLs
@@ -566,10 +567,10 @@ function createReviewCard(reviewId, review) {
       <div class="card-place-name" onclick="navigate('place','${escapeHtml(review.placeId)}')">${escapeHtml(review.placeName || 'Unknown Spot')}</div>
       <div class="card-ratings">
         <span class="card-rating-chip highlight">${overallScore !== '-' ? renderStars(Number(overallScore), 'cm') : ''} ${overallScore}/5</span>
-        ${review.ratings?.tortilla ? `<span class="card-rating-chip">Tortilla ${review.ratings.tortilla}</span>` : ''}
-        ${review.ratings?.protein ? `<span class="card-rating-chip">Protein ${review.ratings.protein}</span>` : ''}
-        ${review.ratings?.salsa ? `<span class="card-rating-chip">Salsa ${review.ratings.salsa}</span>` : ''}
-        ${review.ratings?.value ? `<span class="card-rating-chip">Value ${review.ratings.value}</span>` : ''}
+        ${review.ratings?.tortilla ? `<span class="card-rating-chip">Tortilla ${Number(review.ratings.tortilla).toFixed(1)}</span>` : ''}
+        ${review.ratings?.protein ? `<span class="card-rating-chip">Protein ${Number(review.ratings.protein).toFixed(1)}</span>` : ''}
+        ${review.ratings?.salsa ? `<span class="card-rating-chip">Salsa ${Number(review.ratings.salsa).toFixed(1)}</span>` : ''}
+        ${review.ratings?.value ? `<span class="card-rating-chip">Value ${Number(review.ratings.value).toFixed(1)}</span>` : ''}
       </div>
       ${review.text ? `<p class="card-text">${escapeHtml(review.text)}</p>` : ''}
       <div class="card-tags">${tagsHTML}</div>
@@ -887,7 +888,7 @@ function createPlaceCard(placeId, place) {
   card.style.cursor = 'pointer';
   card.onclick = () => navigate('place', placeId);
 
-  const score = place.avgOverall ? place.avgOverall.toFixed(1) : (place.googleRating ? place.googleRating.toFixed(1) : '-');
+  const score = place.avgOverall ? place.avgOverall.toFixed(2) : (place.googleRating ? place.googleRating.toFixed(1) : '-');
   const typeEmoji = { truck: '🚚', restaurant: '🏪', bakery: '🍞', 'gas-station': '⛽' };
   const mbToken = (window.__mb || []).join('');
 
@@ -1108,7 +1109,7 @@ function addMarkers(places) {
 
       const popup = new mapboxgl.Popup({ offset: 20, closeButton: false }).setHTML(
         `<strong style="font-size:13px">${place.name || 'Taco Spot'}</strong>` +
-        (place.avgOverall ? `<br><span style="color:#D84315">★ ${place.avgOverall.toFixed(1)}</span>` : '')
+        (place.avgOverall ? `<br><span style="color:#D84315">★ ${place.avgOverall.toFixed(2)}</span>` : '')
       );
 
       const marker = new mapboxgl.Marker({ element: el })
@@ -1167,7 +1168,7 @@ async function loadPlaceDetail(placeId) {
 
     if (hasCMReviews) {
       const cmRating = place.avgOverall || 0;
-      heroNumber.textContent = cmRating ? cmRating.toFixed(1) : '-';
+      heroNumber.textContent = cmRating ? cmRating.toFixed(2) : '-';
       heroStars.innerHTML = renderStars(cmRating, 'cm');
       heroSource.textContent = `${place.reviewCount} Chorizo Mejor review${place.reviewCount !== 1 ? 's' : ''}`;
       categoryRatings.style.display = '';
@@ -1602,7 +1603,7 @@ function closeReviewModal() {
 }
 
 function updateRatingVal(category, value) {
-  document.getElementById(`val-${category}`).textContent = value;
+  document.getElementById(`val-${category}`).textContent = parseFloat(value).toFixed(1);
 }
 
 function recalcOverall() {
@@ -1611,7 +1612,7 @@ function recalcOverall() {
   const s = parseFloat(document.getElementById('rate-salsa').value);
   const v = parseFloat(document.getElementById('rate-value').value);
   const avg = (t + p + s + v) / 4;
-  document.getElementById('val-overall').textContent = avg.toFixed(1);
+  document.getElementById('val-overall').textContent = avg.toFixed(2);
   const bar = document.getElementById('overall-bar');
   if (bar) bar.style.width = (avg / 5 * 100) + '%';
 }
@@ -1647,7 +1648,7 @@ async function submitReview(e) {
   const salsa = parseFloat(document.getElementById('rate-salsa').value);
   const value = parseFloat(document.getElementById('rate-value').value);
   const ratings = {
-    overall: Math.round(((tortilla + protein + salsa + value) / 4) * 10) / 10,
+    overall: Math.round(((tortilla + protein + salsa + value) / 4) * 100) / 100,
     tortilla,
     protein,
     salsa,
@@ -1776,8 +1777,8 @@ async function updatePlaceAggregates(placeId, newRatings, wouldWait, tags) {
         updates[key] = ((oldAvg * oldCount) + newRatings[cat]) / count;
       });
 
-      // Derive overall from component averages (never store independently)
-      updates.avgOverall = Math.round(((updates.avgTortilla + updates.avgProtein + updates.avgSalsa + updates.avgValue) / 4) * 10) / 10;
+      // Derive overall from component averages (2 decimal precision for meaningful rankings)
+      updates.avgOverall = Math.round(((updates.avgTortilla + updates.avgProtein + updates.avgSalsa + updates.avgValue) / 4) * 100) / 100;
 
       if (wouldWait) {
         updates.waitYesCount = (data.waitYesCount || 0) + 1;
@@ -1862,9 +1863,10 @@ async function loadLeaderboard() {
     }
 
     list.innerHTML = '';
+    const scoreDecimals = (leaderboardTab === 'overall') ? 2 : 1;
     let rank = 1;
     places.forEach(p => {
-      const score = p._displayScore ? p._displayScore.toFixed(1) : '-';
+      const score = p._displayScore ? p._displayScore.toFixed(scoreDecimals) : '-';
       const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
       const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
       const sourceLabel = p._source === 'google' ? ' · <span class="leaderboard-google-badge">G</span>' : '';
@@ -1890,7 +1892,7 @@ async function loadLeaderboard() {
     // Monthly leaders - top 5
     const top5 = places.slice(0, 5);
     top5.forEach((p, i) => {
-      const score = p._displayScore ? p._displayScore.toFixed(1) : '-';
+      const score = p._displayScore ? p._displayScore.toFixed(scoreDecimals) : '-';
       const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
       monthlyList.innerHTML += `
         <div class="leaderboard-item" onclick="navigate('place','${p.id}')">

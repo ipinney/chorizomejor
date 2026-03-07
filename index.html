@@ -39,7 +39,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-  <link rel="stylesheet" href="style.css?v=37" />
+  <link rel="stylesheet" href="style.css?v=38" />
   <!-- Mapbox GL JS -->
   <script>window.__mb=['pk.eyJ1IjoiaXBpbm5leTIi','LCJhIjoiY203M3Q5YTYwMDJ5cDJycTh1MHJscHA1ZSJ9','.eg3CEbw2FI2WSUUc1N9CfA'];</script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
@@ -461,19 +461,19 @@
         <div class="rating-inputs">
           <div class="rating-group">
             <label>Tortilla<span class="rating-val" id="val-tortilla">3</span></label>
-            <input type="range" min="1" max="5" step="0.5" value="3" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value); recalcOverall()" />
+            <input type="range" min="1" max="5" step="0.1" value="3" id="rate-tortilla" oninput="updateRatingVal('tortilla', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Protein<span class="rating-val" id="val-protein">3</span></label>
-            <input type="range" min="1" max="5" step="0.5" value="3" id="rate-protein" oninput="updateRatingVal('protein', this.value); recalcOverall()" />
+            <input type="range" min="1" max="5" step="0.1" value="3" id="rate-protein" oninput="updateRatingVal('protein', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Salsa<span class="rating-val" id="val-salsa">3</span></label>
-            <input type="range" min="1" max="5" step="0.5" value="3" id="rate-salsa" oninput="updateRatingVal('salsa', this.value); recalcOverall()" />
+            <input type="range" min="1" max="5" step="0.1" value="3" id="rate-salsa" oninput="updateRatingVal('salsa', this.value); recalcOverall()" />
           </div>
           <div class="rating-group">
             <label>Value<span class="rating-val" id="val-value">3</span></label>
-            <input type="range" min="1" max="5" step="0.5" value="3" id="rate-value" oninput="updateRatingVal('value', this.value); recalcOverall()" />
+            <input type="range" min="1" max="5" step="0.1" value="3" id="rate-value" oninput="updateRatingVal('value', this.value); recalcOverall()" />
           </div>
           <div class="rating-group rating-overall-calc">
             <label>Overall<span class="rating-val" id="val-overall">3.0</span></label>
@@ -679,6 +679,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="neighborhoods.js"></script>
-  <script src="app.js?v=37"></script>
+  <script src="app.js?v=38"></script>
 </body>
 </html>
