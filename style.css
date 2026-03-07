@@ -1865,6 +1865,45 @@ a:hover { text-decoration: underline; }
 .tier-badge.tier-5 { background: linear-gradient(135deg, #6A1B9A, #AB47BC); }
 .tier-badge.tier-6 { background: linear-gradient(135deg, #FFD600, #FF6F00); color: #3E2723; }
 
+.profile-stats-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.profile-stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px 18px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.profile-stat-card.xp-card {
+  background: linear-gradient(135deg, #FFF8E1, #FFE082);
+  border-color: #FFB300;
+}
+
+.profile-stat-card .stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.xp-card .stat-value {
+  color: #E65100;
+}
+
+.profile-stat-card .stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  margin-top: 2px;
+}
+
 .tier-xp {
   font-size: 13px;
   font-weight: 700;

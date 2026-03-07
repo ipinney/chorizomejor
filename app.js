@@ -1892,16 +1892,31 @@ async function loadProfile(userId) {
 
       const tierEl = document.getElementById('profile-tier');
       if (tierEl) {
+        const xp = user.xp || 0;
+        const reviewCount = user.reviewCount || 0;
+        const streak = user.streakCurrent || 0;
         tierEl.innerHTML = `
           <div class="tier-badge tier-${tier.level}">${tier.icon} ${tier.name}</div>
-          <div class="tier-xp">${user.xp || 0} XP</div>
-          ${user.streakCurrent ? `<div class="tier-streak">🔥 ${user.streakCurrent} day streak</div>` : ''}
+          <div class="profile-stats-row">
+            <div class="profile-stat-card xp-card">
+              <div class="stat-value">${xp.toLocaleString()}</div>
+              <div class="stat-label">⭐ XP</div>
+            </div>
+            <div class="profile-stat-card">
+              <div class="stat-value">${reviewCount}</div>
+              <div class="stat-label">📝 Reviews</div>
+            </div>
+            <div class="profile-stat-card">
+              <div class="stat-value">${streak}</div>
+              <div class="stat-label">🔥 Streak</div>
+            </div>
+          </div>
           ${nextTier ? `
             <div class="tier-progress-section">
               <div class="tier-progress-bar">
                 <div class="tier-progress-fill" style="width:${tierProgress}%"></div>
               </div>
-              <div class="tier-progress-label">${user.reviewCount || 0}/${nextTier.minReviews} reviews to ${nextTier.icon} ${nextTier.name}</div>
+              <div class="tier-progress-label">${reviewCount}/${nextTier.minReviews} reviews to ${nextTier.icon} ${nextTier.name}</div>
             </div>
           ` : '<div class="tier-progress-label">Max tier reached!</div>'}
         `;
@@ -2545,12 +2560,13 @@ async function renderTacoTrails(userId) {
   content.innerHTML = '<div class="spinner"></div>';
 
   try {
-    // Get all places grouped by neighborhood
+    // Get all places grouped by neighborhood (normalize via LEGACY_HOOD_MAP)
     const placesSnap = await db.collection('places').limit(200).get();
     const placesByHood = {};
     placesSnap.forEach(doc => {
       const p = doc.data();
-      const hood = p.neighborhood || 'unknown';
+      const rawHood = p.neighborhood || 'unknown';
+      const hood = LEGACY_HOOD_MAP[rawHood] || rawHood;
       if (!placesByHood[hood]) placesByHood[hood] = [];
       placesByHood[hood].push({ id: doc.id, ...p });
     });
@@ -2563,7 +2579,8 @@ async function renderTacoTrails(userId) {
     reviewsSnap.forEach(doc => {
       const r = doc.data();
       reviewedPlaceIds.add(r.placeId);
-      const hood = r.placeNeighborhood || 'unknown';
+      const rawHood = r.placeNeighborhood || 'unknown';
+      const hood = LEGACY_HOOD_MAP[rawHood] || rawHood;
       if (!reviewedHoods[hood]) reviewedHoods[hood] = new Set();
       reviewedHoods[hood].add(r.placeId);
     });
