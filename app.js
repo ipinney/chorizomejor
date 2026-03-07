@@ -965,7 +965,7 @@ function addNeighborhoodLayers() {
     source: 'neighborhoods',
     paint: {
       'fill-color': '#D84315',
-      'fill-opacity': 0.06
+      'fill-opacity': 0.10
     }
   }, mapInstance.getStyle().layers.find(l => l.type === 'symbol')?.id);
 
@@ -975,8 +975,8 @@ function addNeighborhoodLayers() {
     source: 'neighborhoods',
     paint: {
       'line-color': '#D84315',
-      'line-width': 1.5,
-      'line-opacity': 0.4,
+      'line-width': 2,
+      'line-opacity': 0.5,
       'line-dasharray': [4, 3]
     }
   });
@@ -987,16 +987,17 @@ function addNeighborhoodLayers() {
     source: 'neighborhoods',
     layout: {
       'text-field': ['get', 'label'],
-      'text-size': 11,
+      'text-size': 12,
       'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
       'text-anchor': 'center',
-      'text-allow-overlap': false
+      'text-allow-overlap': true,
+      'text-ignore-placement': true
     },
     paint: {
       'text-color': '#BF360C',
       'text-halo-color': '#fff',
-      'text-halo-width': 1.5,
-      'text-opacity': 0.7
+      'text-halo-width': 2,
+      'text-opacity': 0.85
     }
   });
 }
