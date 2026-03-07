@@ -73,7 +73,7 @@ function welcomeEmailHtml(name, unsubUrl) {
     <p style="font-size:18px;line-height:1.7;color:#2D2D2D;">Welcome to the table.</p>
     <p style="font-size:18px;line-height:1.7;color:#2D2D2D;">I'm Beto Garza, and every week I write about one Houston taqueria — the history, the people, the food. Not reviews. Stories.</p>
     <p style="font-size:18px;line-height:1.7;color:#2D2D2D;">If you love tacos and you love Houston, you're in the right place.</p>
-    <p style="font-size:18px;line-height:1.7;color:#2D2D2D;">Your first issue will land in your inbox next Monday. In the meantime, catch up on recent features:</p>
+    <p style="font-size:18px;line-height:1.7;color:#2D2D2D;">Your first issue will land in your inbox next Taco Tuesday. In the meantime, catch up on recent features:</p>
     <div style="text-align:center;margin:28px 0;">
       <a href="https://chorizomejor.com/#/stories" style="display:inline-block;background:#D84315;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-family:'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:16px;">Read Beto's Table →</a>
     </div>

@@ -3311,7 +3311,7 @@ async function loadStoryDetail(slug) {
         </div>
         <div class="story-subscribe-cta">
           <h3>Want more stories like this?</h3>
-          <p>Get Beto's Table delivered to your inbox every Monday.</p>
+          <p>Get Beto's Table delivered to your inbox every Taco Tuesday.</p>
           <form onsubmit="handleNewsletterSubscribe(event)" class="newsletter-form newsletter-form-inline">
             <div class="newsletter-form-row">
               <input type="email" placeholder="your@email.com" required class="newsletter-input" />
