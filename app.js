@@ -2927,9 +2927,10 @@ async function fetchLiveRatings(place) {
 // Render star icons for ratings (CM / Google / Yelp)
 function renderStars(rating, platform) {
   const color = platform === 'cm' ? '#D84315' : platform === 'yelp' ? '#FF1A1A' : '#FBBC05';
+  rating = Math.max(0, Math.min(5, rating)); // clamp to 0-5
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.3 ? 1 : 0;
-  const empty = 5 - full - half;
+  const empty = Math.max(0, 5 - full - half);
   const uid = Math.random().toString(36).slice(2, 6);
   const s = `<svg viewBox="0 0 12 12" width="12" height="12"><path fill="${color}" d="M6 0l1.76 3.57 3.94.57-2.85 2.78.67 3.93L6 8.88 2.48 10.85l.67-3.93L.3 4.14l3.94-.57z"/></svg>`;
   const h = `<svg viewBox="0 0 12 12" width="12" height="12"><defs><linearGradient id="hg${uid}"><stop offset="50%" stop-color="${color}"/><stop offset="50%" stop-color="#ddd"/></linearGradient></defs><path fill="url(#hg${uid})" d="M6 0l1.76 3.57 3.94.57-2.85 2.78.67 3.93L6 8.88 2.48 10.85l.67-3.93L.3 4.14l3.94-.57z"/></svg>`;
