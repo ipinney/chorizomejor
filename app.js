@@ -82,6 +82,57 @@ let leaderboardTab = 'overall';
 let profileTab = 'reviews';
 let selectedTags = [];
 
+// ===================== GAMIFICATION CONFIG =====================
+const TACO_TIERS = [
+  { level: 1, name: 'Taco Newbie', icon: '🌱', minReviews: 0, minXP: 0 },
+  { level: 2, name: 'Taco Curious', icon: '🌮', minReviews: 3, minXP: 50 },
+  { level: 3, name: 'Taco Explorer', icon: '🗺️', minReviews: 10, minXP: 200 },
+  { level: 4, name: 'Taco Enthusiast', icon: '🔥', minReviews: 25, minXP: 500 },
+  { level: 5, name: 'Taco Connoisseur', icon: '👑', minReviews: 50, minXP: 1200 },
+  { level: 6, name: 'Taco Legend', icon: '🏆', minReviews: 100, minXP: 3000 }
+];
+
+const BADGES_CONFIG = [
+  // Review Quality
+  { id: 'shutterbug', name: 'Shutterbug', icon: '📸', desc: 'Upload 5+ review photos', category: 'quality', secret: false },
+  { id: 'wordsmith', name: 'Wordsmith', icon: '📝', desc: 'Write 5 detailed reviews (200+ chars)', category: 'quality', secret: false },
+  { id: 'perfect10', name: 'Perfect 10', icon: '⭐', desc: 'Give a place a perfect 5/5', category: 'quality', secret: false },
+  // Exploration
+  { id: 'hood_hopper', name: 'Hood Hopper', icon: '🏘️', desc: 'Review in 5+ neighborhoods', category: 'exploration', secret: false },
+  { id: 'truck_hunter', name: 'Truck Hunter', icon: '🚚', desc: 'Review 3+ food trucks', category: 'exploration', secret: false },
+  { id: 'city_explorer', name: 'City Explorer', icon: '🗺️', desc: 'Review in 10+ neighborhoods', category: 'exploration', secret: false },
+  // Social
+  { id: 'conversation_starter', name: 'Conversation Starter', icon: '💬', desc: 'Get 10+ comments on your reviews', category: 'social', secret: false },
+  { id: 'crowd_favorite', name: 'Crowd Favorite', icon: '❤️', desc: 'Get 25+ total likes', category: 'social', secret: false },
+  { id: 'influencer', name: 'Influencer', icon: '👥', desc: 'Gain 10+ followers', category: 'social', secret: false },
+  { id: 'social_butterfly', name: 'Social Butterfly', icon: '📢', desc: 'Share 5+ reviews', category: 'social', secret: false },
+  // Dedication
+  { id: 'on_fire', name: 'On Fire', icon: '🔥', desc: '7-day review streak', category: 'dedication', secret: false },
+  { id: 'monthly_regular', name: 'Monthly Regular', icon: '📅', desc: 'Review 4 weeks in a row', category: 'dedication', secret: false },
+  { id: 'veteran', name: 'Veteran', icon: '🎖️', desc: 'Account 6+ months with 20+ reviews', category: 'dedication', secret: false },
+  // Secret (not shown until earned)
+  { id: 'early_bird', name: 'Early Bird', icon: '🌅', desc: 'Review before 7 AM', category: 'secret', secret: true },
+  { id: 'night_owl', name: 'Night Owl', icon: '🦉', desc: 'Review after 11 PM', category: 'secret', secret: true },
+  { id: 'first_reviewer', name: 'First!', icon: '🎯', desc: 'First to review a new place', category: 'secret', secret: true },
+  { id: 'taco_newbie', name: 'First Taco', icon: '🌮', desc: 'Submit your first review', category: 'milestone', secret: false },
+  { id: 'ten_reviews', name: 'Double Digits', icon: '🔟', desc: 'Reach 10 reviews', category: 'milestone', secret: false },
+  { id: 'fifty_reviews', name: 'Half Century', icon: '5️⃣0️⃣', desc: 'Reach 50 reviews', category: 'milestone', secret: false },
+  { id: 'hundred_club', name: '100 Club', icon: '💯', desc: 'Reach 100 reviews', category: 'milestone', secret: false }
+];
+
+const XP_REWARDS = {
+  submitReview: 10,
+  uploadPhoto: 5,
+  detailedReview: 5,   // 200+ chars
+  receiveLike: 2,
+  receiveComment: 3,
+  shareReview: 3,
+  dailyLogin: 5,
+  firstReviewBonus: 25
+};
+
+let userGameData = null; // cached gamification data for current user
+
 // ===================== PWA =====================
 let deferredInstallPrompt = null;
 
@@ -181,6 +232,10 @@ function handleRoute() {
     case 'explore':
       showView('view-explore');
       loadPlaces();
+      // Track map exploration for onboarding
+      if (currentUser) {
+        db.collection('users').doc(currentUser.uid).update({ exploredMap: true }).catch(() => {});
+      }
       break;
     case 'leaderboard':
       showView('view-leaderboard');
@@ -272,7 +327,16 @@ async function handleAuth(e) {
         followers: 0,
         following: 0,
         badges: [],
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        xp: 0,
+        streakCurrent: 0,
+        streakLongest: 0,
+        streakFreezeAvailable: true,
+        shareCount: 0,
+        photoReviewCount: 0,
+        badgeIds: [],
+        onboardingComplete: false,
+        exploredMap: false
       });
 
       showToast('Welcome to Chorizo Mejor!');
@@ -312,7 +376,16 @@ async function signInWithGoogle() {
         followers: 0,
         following: 0,
         badges: [],
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        xp: 0,
+        streakCurrent: 0,
+        streakLongest: 0,
+        streakFreezeAvailable: true,
+        shareCount: 0,
+        photoReviewCount: 0,
+        badgeIds: [],
+        onboardingComplete: false,
+        exploredMap: false
       });
       showToast('Welcome to Chorizo Mejor!');
     } else {
@@ -381,6 +454,11 @@ async function loadFeed() {
       const review = doc.data();
       feedList.appendChild(createReviewCard(doc.id, review));
     }
+
+    // Check onboarding quest
+    if (currentUser) {
+      checkOnboarding(currentUser.uid);
+    }
   } catch (err) {
     console.error('Feed error:', err);
     feedList.innerHTML = '';
@@ -411,7 +489,7 @@ function createReviewCard(reviewId, review) {
     <div class="card-header">
       <div class="card-avatar">🌮</div>
       <div class="card-user-info">
-        <div class="card-username" onclick="navigate('profile','${escapeHtml(review.userId)}')">${escapeHtml(review.userName || 'Anonymous')}</div>
+        <div class="card-username" onclick="navigate('profile','${escapeHtml(review.userId)}')">${escapeHtml(review.userName || 'Anonymous')} <span class="card-tier-badge">${review.userTier || '🌱'}</span></div>
         <div class="card-meta">${timeAgo}</div>
       </div>
       <button class="btn-icon" onclick="openShareModal('${reviewId}')">
@@ -1314,9 +1392,13 @@ async function submitReview(e) {
       photoURL = await ref.getDownloadURL();
     }
 
-    // Get place name
+    // Get place name and data
     const placeDoc = await db.collection('places').doc(currentPlaceId).get();
     const placeName = placeDoc.exists ? placeDoc.data().name : 'Unknown';
+
+    // Get user tier icon for the review
+    const userSnap = await db.collection('users').doc(currentUser.uid).get();
+    const userTierIcon = getUserTier(userSnap.data()?.reviewCount || 0, userSnap.data()?.xp || 0).icon;
 
     // Create review
     await db.collection('reviews').add({
@@ -1331,7 +1413,10 @@ async function submitReview(e) {
       photoURL,
       likes: [],
       commentCount: 0,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userTier: userTierIcon,
+      placeNeighborhood: placeDoc.data()?.neighborhood || '',
+      placeType: placeDoc.data()?.type || ''
     });
 
     // Update place aggregates
@@ -1344,6 +1429,27 @@ async function submitReview(e) {
 
     // Check for badges
     await checkBadges(currentUser.uid);
+
+    // Gamification hooks
+    let reviewXP = XP_REWARDS.submitReview;
+    if (photoURL) {
+      reviewXP += XP_REWARDS.uploadPhoto;
+      await db.collection('users').doc(currentUser.uid).update({
+        photoReviewCount: firebase.firestore.FieldValue.increment(1)
+      }).catch(() => {});
+    }
+    if (text.length >= 200) reviewXP += XP_REWARDS.detailedReview;
+    await awardXP(currentUser.uid, reviewXP, 'submitReview');
+    await updateStreak(currentUser.uid);
+
+    // Trigger share prompt after review
+    setTimeout(() => {
+      triggerSharePrompt('review', {
+        placeName: placeName,
+        shareText: `Just rated ${placeName} ${ratings.overall}/5 on Chorizo Mejor! 🌮`,
+        shareUrl: `https://www.chorizomejor.com/#/place/${currentPlaceId}`
+      });
+    }, 1500);
 
     closeReviewModal();
     showToast('Review posted!');
@@ -1407,6 +1513,12 @@ function switchLeaderboardTab(btn) {
 }
 
 async function loadLeaderboard() {
+  // Check if user leaderboard tab is selected
+  if (leaderboardTab === 'users') {
+    renderUserLeaderboard();
+    return;
+  }
+
   const list = document.getElementById('leaderboard-list');
   const monthlyList = document.getElementById('monthly-leaders');
   list.innerHTML = '<div class="spinner"></div>';
@@ -1632,10 +1744,36 @@ async function loadProfile(userId) {
         avatarEl.classList.remove('has-photo');
       }
 
+      // Tier & XP display
+      const tier = getUserTier(user.reviewCount || 0, user.xp || 0);
+      const nextTier = getNextTier(tier);
+      const tierProgress = getTierProgress(user.reviewCount || 0, tier, nextTier);
+
+      const tierEl = document.getElementById('profile-tier');
+      if (tierEl) {
+        tierEl.innerHTML = `
+          <div class="tier-badge tier-${tier.level}">${tier.icon} ${tier.name}</div>
+          <div class="tier-xp">${user.xp || 0} XP</div>
+          ${user.streakCurrent ? `<div class="tier-streak">🔥 ${user.streakCurrent} day streak</div>` : ''}
+          ${nextTier ? `
+            <div class="tier-progress-section">
+              <div class="tier-progress-bar">
+                <div class="tier-progress-fill" style="width:${tierProgress}%"></div>
+              </div>
+              <div class="tier-progress-label">${user.reviewCount || 0}/${nextTier.minReviews} reviews to ${nextTier.icon} ${nextTier.name}</div>
+            </div>
+          ` : '<div class="tier-progress-label">Max tier reached!</div>'}
+        `;
+      }
+
       // Badges
       const badgesEl = document.getElementById('profile-badges');
-      const badges = user.badges || [];
-      badgesEl.innerHTML = badges.map(b => `<span class="badge">${escapeHtml(b)}</span>`).join('');
+      const badgeIds = user.badgeIds || [];
+      const displayBadges = badgeIds.map(id => {
+        const b = BADGES_CONFIG.find(x => x.id === id);
+        return b ? `<span class="badge badge-${b.category}" title="${b.desc}">${b.icon} ${b.name}</span>` : '';
+      }).filter(Boolean);
+      badgesEl.innerHTML = displayBadges.join('') || '<span style="font-size:13px;color:#8D6E63">No badges yet — start reviewing!</span>';
 
       // Follow / Sign Out button
       if (currentUser && currentUser.uid === userId) {
@@ -1707,8 +1845,8 @@ async function loadProfileContent(userId) {
       snap.forEach(doc => {
         content.appendChild(createReviewCard(doc.id, doc.data()));
       });
-    } else {
-      content.innerHTML = '<div class="empty-state"><p>Taco Trails coming soon! 🌮🗺️</p></div>';
+    } else if (profileTab === 'lists') {
+      await renderTacoTrails(userId);
     }
   } catch (err) {
     console.error('Profile content error:', err);
@@ -1782,37 +1920,512 @@ async function toggleFollow(userId) {
   }
 }
 
-// ===================== BADGES =====================
+// ===================== GAMIFICATION ENGINE =====================
+function getUserTier(reviewCount, xp) {
+  let tier = TACO_TIERS[0];
+  for (const t of TACO_TIERS) {
+    if (reviewCount >= t.minReviews) tier = t;
+  }
+  return tier;
+}
+
+function getNextTier(currentTier) {
+  const idx = TACO_TIERS.findIndex(t => t.level === currentTier.level);
+  return idx < TACO_TIERS.length - 1 ? TACO_TIERS[idx + 1] : null;
+}
+
+function getTierProgress(reviewCount, currentTier, nextTier) {
+  if (!nextTier) return 100;
+  const range = nextTier.minReviews - currentTier.minReviews;
+  const progress = reviewCount - currentTier.minReviews;
+  return Math.min(100, Math.round((progress / range) * 100));
+}
+
+async function awardXP(userId, amount, reason) {
+  if (!userId) return;
+  try {
+    await db.collection('users').doc(userId).update({
+      xp: firebase.firestore.FieldValue.increment(amount)
+    });
+    // Random bonus (20% chance for extra XP)
+    if (Math.random() < 0.2 && reason === 'submitReview') {
+      const bonus = Math.floor(Math.random() * 10) + 5;
+      await db.collection('users').doc(userId).update({
+        xp: firebase.firestore.FieldValue.increment(bonus)
+      });
+      showToast(`🎉 Bonus! +${bonus} XP for a great review!`);
+    }
+  } catch (err) {
+    console.error('XP award error:', err);
+  }
+}
+
+// ===================== STREAK SYSTEM =====================
+async function updateStreak(userId) {
+  if (!userId) return;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return;
+    const data = userDoc.data();
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const lastDate = data.streakLastDate ? data.streakLastDate.toDate().getTime() : 0;
+    const lastDay = new Date(new Date(lastDate).getFullYear(), new Date(lastDate).getMonth(), new Date(lastDate).getDate()).getTime();
+    const dayDiff = Math.floor((today - lastDay) / 86400000);
+
+    let current = data.streakCurrent || 0;
+    let longest = data.streakLongest || 0;
+
+    if (dayDiff === 0) {
+      // Already reviewed today, no streak change
+      return;
+    } else if (dayDiff === 1) {
+      // Consecutive day!
+      current += 1;
+    } else if (dayDiff === 2 && data.streakFreezeAvailable) {
+      // Missed one day but have freeze
+      current += 1;
+      await db.collection('users').doc(userId).update({
+        streakFreezeAvailable: false,
+        streakFreezeUsedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('❄️ Streak freeze used! Your streak lives on!');
+    } else {
+      // Streak broken
+      if (current > 0) {
+        showToast(`Streak reset! Previous: ${current} days`);
+      }
+      current = 1;
+    }
+
+    if (current > longest) longest = current;
+
+    await db.collection('users').doc(userId).update({
+      streakCurrent: current,
+      streakLongest: longest,
+      streakLastDate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Streak milestone celebrations
+    if ([3, 7, 14, 30, 50, 100].includes(current)) {
+      showToast(`🔥 ${current}-day streak! You're on fire!`);
+      awardXP(userId, current * 2, 'streak');
+    }
+  } catch (err) {
+    console.error('Streak error:', err);
+  }
+}
+
+// ===================== SOCIAL SHARING =====================
+function shareToX(text, url) {
+  const tweetText = encodeURIComponent(text);
+  const tweetUrl = encodeURIComponent(url);
+  window.open(`https://twitter.com/intent/tweet?text=${tweetText}&url=${tweetUrl}`, '_blank', 'width=600,height=400');
+}
+
+function shareToFacebook(url) {
+  const fbUrl = encodeURIComponent(url);
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${fbUrl}`, '_blank', 'width=600,height=400');
+}
+
+function shareToInstagram(text) {
+  // Instagram doesn't have a web share API - copy text for the user
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('📋 Caption copied! Open Instagram to share your photo');
+  }).catch(() => {
+    showToast('Could not copy to clipboard');
+  });
+}
+
+function getShareText(review, place) {
+  const score = review.ratings?.overall || '-';
+  const excerpt = review.text ? review.text.slice(0, 80) + (review.text.length > 80 ? '...' : '') : '';
+  return `Just rated ${place || review.placeName} ${score}/5 on Chorizo Mejor! 🌮 ${excerpt}`;
+}
+
+function getShareUrl(placeId) {
+  return `https://www.chorizomejor.com/#/place/${placeId}`;
+}
+
+async function trackShare(userId) {
+  if (!userId) return;
+  try {
+    await db.collection('users').doc(userId).update({
+      shareCount: firebase.firestore.FieldValue.increment(1)
+    });
+    awardXP(userId, XP_REWARDS.shareReview, 'share');
+  } catch (err) {
+    console.error('Share tracking error:', err);
+  }
+}
+
+// Contextual share prompts after key moments
+function triggerSharePrompt(type, data) {
+  if (!currentUser) return;
+  const modal = document.getElementById('share-prompt-modal');
+  const title = document.getElementById('share-prompt-title');
+  const subtitle = document.getElementById('share-prompt-subtitle');
+
+  switch (type) {
+    case 'review':
+      title.textContent = '🌮 Share your discovery!';
+      subtitle.textContent = `Let your friends know about ${data.placeName}`;
+      break;
+    case 'badge':
+      title.textContent = `🏅 Badge earned: ${data.badgeName}!`;
+      subtitle.textContent = 'Show off your achievement!';
+      break;
+    case 'tierUp':
+      title.textContent = `🎉 You're now a ${data.tierName}!`;
+      subtitle.textContent = 'Share your taco journey!';
+      break;
+    case 'neighborhood':
+      title.textContent = `🏘️ ${data.hoodName} conquered!`;
+      subtitle.textContent = "You've reviewed every spot in this neighborhood!";
+      break;
+  }
+
+  // Store share data for button handlers
+  modal.dataset.shareText = data.shareText || '';
+  modal.dataset.shareUrl = data.shareUrl || window.location.href;
+  modal.classList.remove('hidden');
+}
+
+function closeSharePrompt() {
+  document.getElementById('share-prompt-modal').classList.add('hidden');
+}
+
+function sharePromptAction(platform) {
+  const modal = document.getElementById('share-prompt-modal');
+  const text = modal.dataset.shareText;
+  const url = modal.dataset.shareUrl;
+
+  switch (platform) {
+    case 'x': shareToX(text, url); break;
+    case 'facebook': shareToFacebook(url); break;
+    case 'instagram': shareToInstagram(text + '\n' + url); break;
+    case 'copy':
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+      break;
+  }
+  if (currentUser) trackShare(currentUser.uid);
+  closeSharePrompt();
+}
+
+// ===================== LEVEL UP CELEBRATION =====================
+function showLevelUpModal(tier) {
+  const modal = document.getElementById('levelup-modal');
+  document.getElementById('levelup-icon').textContent = tier.icon;
+  document.getElementById('levelup-title').textContent = tier.name;
+  document.getElementById('levelup-desc').textContent = `Level ${tier.level} achieved!`;
+  modal.classList.remove('hidden');
+
+  // Auto-close after 4 seconds
+  setTimeout(() => modal.classList.add('hidden'), 4000);
+}
+
+// ===================== ONBOARDING QUEST =====================
+async function checkOnboarding(userId) {
+  if (!userId) return;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return;
+    const data = userDoc.data();
+
+    if (data.onboardingComplete) return; // Already done
+
+    const steps = {
+      joined: true, // Always true if they have an account
+      profileSet: !!(data.displayName && data.displayName !== 'Taco Lover'),
+      firstReview: (data.reviewCount || 0) >= 1,
+      firstPhoto: (data.photoReviewCount || 0) >= 1,
+      exploredMap: data.exploredMap || false,
+      firstFollow: (data.following || 0) >= 1
+    };
+
+    const completed = Object.values(steps).filter(Boolean).length;
+    const total = Object.keys(steps).length;
+
+    if (completed >= total) {
+      // Quest complete!
+      await db.collection('users').doc(userId).update({ onboardingComplete: true });
+      awardXP(userId, 50, 'questComplete');
+      showToast('🎉 Taco Quest complete! +50 XP!');
+      return;
+    }
+
+    // Show onboarding banner on feed
+    renderOnboardingBanner(steps, completed, total);
+  } catch (err) {
+    console.error('Onboarding check error:', err);
+  }
+}
+
+function renderOnboardingBanner(steps, completed, total) {
+  const existing = document.getElementById('onboarding-banner');
+  if (existing) existing.remove();
+
+  const pct = Math.round((completed / total) * 100);
+  const banner = document.createElement('div');
+  banner.id = 'onboarding-banner';
+  banner.className = 'onboarding-banner';
+  banner.innerHTML = `
+    <div class="onboarding-header">
+      <h3>🌮 Your Taco Quest</h3>
+      <span class="onboarding-pct">${completed}/${total}</span>
+    </div>
+    <div class="onboarding-bar">
+      <div class="onboarding-bar-fill" style="width:${pct}%"></div>
+    </div>
+    <div class="onboarding-steps">
+      <div class="onboarding-step ${steps.joined ? 'done' : ''}">
+        <span class="step-check">${steps.joined ? '✅' : '⬜'}</span>
+        <span>Join Chorizo Mejor</span>
+      </div>
+      <div class="onboarding-step ${steps.profileSet ? 'done' : ''}">
+        <span class="step-check">${steps.profileSet ? '✅' : '⬜'}</span>
+        <span>Set up your profile</span>
+      </div>
+      <div class="onboarding-step ${steps.firstReview ? 'done' : ''}">
+        <span class="step-check">${steps.firstReview ? '✅' : '⬜'}</span>
+        <span>Rate your first taco spot</span>
+      </div>
+      <div class="onboarding-step ${steps.firstPhoto ? 'done' : ''}">
+        <span class="step-check">${steps.firstPhoto ? '✅' : '⬜'}</span>
+        <span>Upload a taco photo</span>
+      </div>
+      <div class="onboarding-step ${steps.exploredMap ? 'done' : ''}">
+        <span class="step-check">${steps.exploredMap ? '✅' : '⬜'}</span>
+        <span>Explore the map</span>
+      </div>
+      <div class="onboarding-step ${steps.firstFollow ? 'done' : ''}">
+        <span class="step-check">${steps.firstFollow ? '✅' : '⬜'}</span>
+        <span>Follow another taco fan</span>
+      </div>
+    </div>
+  `;
+
+  const feedList = document.getElementById('feed-list');
+  if (feedList) feedList.parentNode.insertBefore(banner, feedList);
+}
+
+// ===================== TACO TRAILS (NEIGHBORHOOD COLLECTION) =====================
+async function renderTacoTrails(userId) {
+  const content = document.getElementById('profile-content');
+  content.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    // Get all places grouped by neighborhood
+    const placesSnap = await db.collection('places').limit(200).get();
+    const placesByHood = {};
+    placesSnap.forEach(doc => {
+      const p = doc.data();
+      const hood = p.neighborhood || 'unknown';
+      if (!placesByHood[hood]) placesByHood[hood] = [];
+      placesByHood[hood].push({ id: doc.id, ...p });
+    });
+
+    // Get user's reviews to know which places they've reviewed
+    const reviewsSnap = await db.collection('reviews')
+      .where('userId', '==', userId).limit(500).get();
+    const reviewedPlaceIds = new Set();
+    const reviewedHoods = {};
+    reviewsSnap.forEach(doc => {
+      const r = doc.data();
+      reviewedPlaceIds.add(r.placeId);
+      const hood = r.placeNeighborhood || 'unknown';
+      if (!reviewedHoods[hood]) reviewedHoods[hood] = new Set();
+      reviewedHoods[hood].add(r.placeId);
+    });
+
+    // Count reviewed places per hood from place data
+    const hoodStats = {};
+    for (const [hood, places] of Object.entries(placesByHood)) {
+      const reviewed = places.filter(p => reviewedPlaceIds.has(p.id)).length;
+      hoodStats[hood] = { total: places.length, reviewed, places };
+    }
+
+    // Calculate overall stats
+    const totalHoods = Object.keys(placesByHood).length;
+    const exploredHoods = Object.values(hoodStats).filter(h => h.reviewed > 0).length;
+    const totalPlaces = placesSnap.size;
+    const totalReviewed = reviewedPlaceIds.size;
+
+    content.innerHTML = `
+      <div class="trails-overview">
+        <div class="trails-stat">
+          <strong>${exploredHoods}</strong>
+          <span>of ${totalHoods} Neighborhoods</span>
+        </div>
+        <div class="trails-stat">
+          <strong>${totalReviewed}</strong>
+          <span>of ${totalPlaces} Spots Reviewed</span>
+        </div>
+        <div class="trails-bar">
+          <div class="trails-bar-fill" style="width:${totalPlaces > 0 ? Math.round((totalReviewed/totalPlaces)*100) : 0}%"></div>
+        </div>
+      </div>
+      <div class="trails-grid">
+        ${Object.entries(hoodStats)
+          .sort((a, b) => (b[1].reviewed / b[1].total) - (a[1].reviewed / a[1].total))
+          .map(([hood, stats]) => {
+            const pct = stats.total > 0 ? Math.round((stats.reviewed / stats.total) * 100) : 0;
+            const isComplete = pct === 100 && stats.total > 0;
+            return `
+              <div class="trails-hood ${isComplete ? 'complete' : ''} ${stats.reviewed > 0 ? 'started' : ''}">
+                <div class="trails-hood-ring" style="background: conic-gradient(var(--color-primary) ${pct * 3.6}deg, var(--color-border) 0)">
+                  <div class="trails-hood-inner">${isComplete ? '✅' : pct + '%'}</div>
+                </div>
+                <div class="trails-hood-name">${formatNeighborhood(hood)}</div>
+                <div class="trails-hood-count">${stats.reviewed}/${stats.total}</div>
+              </div>
+            `;
+          }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    console.error('Taco trails error:', err);
+    content.innerHTML = '<div class="empty-state"><p>Could not load Taco Trails</p></div>';
+  }
+}
+
+// ===================== USER LEADERBOARD =====================
+async function renderUserLeaderboard() {
+  const list = document.getElementById('leaderboard-list');
+  const monthlyList = document.getElementById('monthly-leaders');
+  list.innerHTML = '<div class="spinner"></div>';
+  monthlyList.innerHTML = '';
+
+  try {
+    // Fetch top users by XP
+    const snap = await db.collection('users')
+      .orderBy('xp', 'desc').limit(20).get();
+
+    if (snap.empty) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👥</span><h3>No reviewers yet</h3></div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    let rank = 1;
+    snap.forEach(doc => {
+      const u = doc.data();
+      const tier = getUserTier(u.reviewCount || 0, u.xp || 0);
+      const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+      const streak = u.streakCurrent ? `<span class="user-lb-streak">🔥${u.streakCurrent}</span>` : '';
+
+      const item = document.createElement('div');
+      item.className = 'leaderboard-item';
+      item.onclick = () => navigate('profile', doc.id);
+      item.innerHTML = `
+        <div class="leaderboard-rank ${rankClass}">${medal}</div>
+        <div class="leaderboard-info">
+          <div class="leaderboard-name">${tier.icon} ${escapeHtml(u.displayName || 'Anonymous')}</div>
+          <div class="leaderboard-neighborhood">${u.reviewCount || 0} reviews · ${u.xp || 0} XP ${streak}</div>
+        </div>
+        <div class="leaderboard-score user-lb-tier">${tier.icon}</div>
+      `;
+      list.appendChild(item);
+      rank++;
+    });
+  } catch (err) {
+    console.error('User leaderboard error:', err);
+    list.innerHTML = '<div class="empty-state"><span class="empty-icon">👥</span><h3>Could not load rankings</h3></div>';
+  }
+}
+
+// ===================== BADGES & TIER CHECK =====================
 async function checkBadges(userId) {
   try {
     const userDoc = await db.collection('users').doc(userId).get();
     if (!userDoc.exists) return;
-
     const userData = userDoc.data();
     const count = userData.reviewCount || 0;
-    const badges = userData.badges || [];
-    const newBadges = [...badges];
+    const currentBadgeIds = userData.badgeIds || [];
+    const newBadgeIds = [...currentBadgeIds];
+    const xp = userData.xp || 0;
 
-    if (count >= 1 && !badges.includes('First Taco 🌮')) {
-      newBadges.push('First Taco 🌮');
-    }
-    if (count >= 10 && !badges.includes('Taco Explorer 🗺️')) {
-      newBadges.push('Taco Explorer 🗺️');
-    }
-    if (count >= 25 && !badges.includes('Taco Enthusiast 🔥')) {
-      newBadges.push('Taco Enthusiast 🔥');
-    }
-    if (count >= 50 && !badges.includes('Taco Connoisseur 👑')) {
-      newBadges.push('Taco Connoisseur 👑');
-    }
-    if (count >= 100 && !badges.includes('100 Tacos Club 💯')) {
-      newBadges.push('100 Tacos Club 💯');
+    // Check tier progression
+    const oldTier = getUserTier(count - 1, xp);
+    const newTier = getUserTier(count, xp);
+    if (newTier.level > oldTier.level) {
+      showLevelUpModal(newTier);
+      awardXP(userId, newTier.level * 20, 'tierUp');
     }
 
-    if (newBadges.length > badges.length) {
-      await db.collection('users').doc(userId).update({ badges: newBadges });
-      const latest = newBadges[newBadges.length - 1];
-      showToast(`Badge earned: ${latest}`);
+    // Fetch user's reviews for badge checking
+    const reviewsSnap = await db.collection('reviews')
+      .where('userId', '==', userId).limit(500).get();
+    const reviews = reviewsSnap.docs.map(d => d.data());
+
+    // Collect stats
+    const photoCount = reviews.filter(r => r.photoURL).length;
+    const detailedCount = reviews.filter(r => r.text && r.text.length >= 200).length;
+    const hasPerfect = reviews.some(r => r.ratings?.overall >= 5);
+    const neighborhoods = new Set(reviews.map(r => r.placeNeighborhood || '').filter(Boolean));
+    const truckReviews = reviews.filter(r => r.placeType === 'truck').length;
+    const totalLikes = reviews.reduce((sum, r) => sum + (r.likes?.length || 0), 0);
+    const totalComments = reviews.reduce((sum, r) => sum + (r.commentCount || 0), 0);
+    const hour = new Date().getHours();
+
+    // First reviewer check - was this place's first review?
+    const isFirstReview = reviews.length > 0 && reviews.some(r => {
+      // We'll check this based on review count at time - approximate
+      return true; // simplified - check place reviewCount
+    });
+
+    // Check each badge
+    const checks = {
+      taco_newbie: count >= 1,
+      ten_reviews: count >= 10,
+      fifty_reviews: count >= 50,
+      hundred_club: count >= 100,
+      shutterbug: photoCount >= 5,
+      wordsmith: detailedCount >= 5,
+      perfect10: hasPerfect,
+      hood_hopper: neighborhoods.size >= 5,
+      truck_hunter: truckReviews >= 3,
+      city_explorer: neighborhoods.size >= 10,
+      conversation_starter: totalComments >= 10,
+      crowd_favorite: totalLikes >= 25,
+      influencer: (userData.followers || 0) >= 10,
+      social_butterfly: (userData.shareCount || 0) >= 5,
+      on_fire: (userData.streakLongest || 0) >= 7,
+      monthly_regular: (userData.streakLongest || 0) >= 28,
+      veteran: count >= 20 && userData.joinedAt && (Date.now() - userData.joinedAt.toDate().getTime() > 180 * 86400000),
+      early_bird: hour < 7,
+      night_owl: hour >= 23,
+      first_reviewer: false // Would need place-level check
+    };
+
+    let newlyEarned = [];
+    for (const [badgeId, earned] of Object.entries(checks)) {
+      if (earned && !currentBadgeIds.includes(badgeId)) {
+        newBadgeIds.push(badgeId);
+        const badge = BADGES_CONFIG.find(b => b.id === badgeId);
+        if (badge) newlyEarned.push(badge);
+      }
+    }
+
+    if (newBadgeIds.length > currentBadgeIds.length) {
+      // Build display badges array for backward compat
+      const displayBadges = newBadgeIds.map(id => {
+        const b = BADGES_CONFIG.find(x => x.id === id);
+        return b ? `${b.name} ${b.icon}` : id;
+      });
+
+      await db.collection('users').doc(userId).update({
+        badgeIds: newBadgeIds,
+        badges: displayBadges
+      });
+
+      // Show earned badge notifications
+      for (const badge of newlyEarned) {
+        showToast(`🏅 Badge earned: ${badge.name} ${badge.icon}`);
+        awardXP(userId, 15, 'badge');
+      }
     }
   } catch (err) {
     console.error('Badge check error:', err);
@@ -1856,9 +2469,16 @@ function openShareModal(reviewId) {
   db.collection('reviews').doc(reviewId).get().then(doc => {
     if (!doc.exists) return;
     const r = doc.data();
+    const shareText = getShareText(r, r.placeName);
+    const shareUrl = getShareUrl(r.placeId);
+
+    // Store for social button handlers
+    document.getElementById('share-modal').dataset.shareText = shareText;
+    document.getElementById('share-modal').dataset.shareUrl = shareUrl;
+
     body.innerHTML = `
       <h4 style="margin-bottom:4px">${escapeHtml(r.placeName || 'A taco spot')}</h4>
-      <p style="font-size:24px;margin:8px 0">★ ${r.ratings?.overall || '-'}/10</p>
+      <p style="font-size:24px;margin:8px 0">★ ${r.ratings?.overall || '-'}/5</p>
       ${r.text ? `<p style="font-size:14px;color:#6D4C41;font-style:italic">"${escapeHtml(r.text.slice(0, 120))}"</p>` : ''}
       <p style="font-size:12px;color:#8D6E63;margin-top:8px">— ${escapeHtml(r.userName || 'Anonymous')}</p>
     `;

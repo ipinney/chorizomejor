@@ -1797,3 +1797,414 @@ a:hover { text-decoration: underline; }
   height: 100%;
   object-fit: cover;
 }
+
+/* ===================== GAMIFICATION STYLES ===================== */
+
+/* --- Tier Badge --- */
+.profile-tier {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-primary), #FF6F00);
+  color: white;
+  margin-bottom: 6px;
+}
+
+.tier-badge.tier-1 { background: linear-gradient(135deg, #8D6E63, #A1887F); }
+.tier-badge.tier-2 { background: linear-gradient(135deg, #FF8F00, #FFB300); }
+.tier-badge.tier-3 { background: linear-gradient(135deg, #2E7D32, #43A047); }
+.tier-badge.tier-4 { background: linear-gradient(135deg, #D84315, #FF5722); }
+.tier-badge.tier-5 { background: linear-gradient(135deg, #6A1B9A, #AB47BC); }
+.tier-badge.tier-6 { background: linear-gradient(135deg, #FFD600, #FF6F00); color: #3E2723; }
+
+.tier-xp {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.tier-streak {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FF6F00;
+  margin-bottom: 6px;
+}
+
+.tier-progress-section {
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.tier-progress-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.tier-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #FF6F00);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.tier-progress-label {
+  font-size: 11px;
+  color: var(--color-text-light);
+}
+
+/* --- Card Tier Badge --- */
+.card-tier-badge {
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+/* --- Enhanced Badges --- */
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--color-secondary);
+  color: var(--color-text);
+  cursor: default;
+  transition: transform 0.15s;
+}
+
+.badge:hover { transform: scale(1.05); }
+
+.badge-quality { background: #E3F2FD; color: #1565C0; }
+.badge-exploration { background: #E8F5E9; color: #2E7D32; }
+.badge-social { background: #FCE4EC; color: #C62828; }
+.badge-dedication { background: #FFF3E0; color: #E65100; }
+.badge-milestone { background: var(--color-secondary); color: var(--color-text); }
+.badge-secret { background: linear-gradient(135deg, #6A1B9A, #AB47BC); color: white; }
+
+/* --- Social Share Buttons --- */
+.btn-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: transform 0.1s, opacity 0.2s;
+  flex: 1;
+  justify-content: center;
+}
+
+.btn-social:hover { opacity: 0.9; }
+.btn-social:active { transform: scale(0.97); }
+
+.btn-x { background: #000000; }
+.btn-fb { background: #1877F2; }
+.btn-ig { background: linear-gradient(135deg, #833AB4, #FD1D1D, #F77737); }
+.btn-copy { background: var(--color-text-secondary); }
+
+.share-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.share-actions-row2 {
+  display: flex;
+  gap: 8px;
+}
+
+.share-actions-row2 .btn-secondary { flex: 1; justify-content: center; }
+
+/* --- Share Prompt Modal --- */
+.modal-share-prompt {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.share-prompt-content h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.share-prompt-content p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.share-prompt-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  font-size: 14px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 8px;
+}
+
+.btn-text:hover { color: var(--color-text); }
+
+/* --- Level Up Modal --- */
+.modal-levelup {
+  text-align: center;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+}
+
+.levelup-content {
+  animation: levelUpPop 0.6s ease;
+}
+
+@keyframes levelUpPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.levelup-confetti {
+  font-size: 40px;
+  display: inline-block;
+  animation: confettiBounce 1s ease infinite;
+}
+
+@keyframes confettiBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.levelup-icon {
+  font-size: 72px;
+  margin: 12px 0;
+}
+
+.levelup-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.levelup-desc {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+/* --- Onboarding Quest Banner --- */
+.onboarding-banner {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  border-left: 4px solid var(--color-primary);
+}
+
+.onboarding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.onboarding-header h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin: 0;
+}
+
+.onboarding-pct {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.onboarding-bar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.onboarding-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+}
+
+.onboarding-step.done {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.step-check { font-size: 16px; width: 20px; }
+
+/* --- Taco Trails --- */
+.trails-overview {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.trails-stat {
+  text-align: center;
+}
+
+.trails-stat strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.trails-stat span {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.trails-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.trails-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.trails-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.trails-hood {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.trails-hood:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.trails-hood.complete {
+  border: 2px solid var(--color-accent);
+  background: #E8F5E9;
+}
+
+.trails-hood.started {
+  border: 1px solid var(--color-primary);
+}
+
+.trails-hood-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trails-hood-inner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.trails-hood-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.trails-hood-count {
+  font-size: 10px;
+  color: var(--color-text-light);
+}
+
+/* --- User Leaderboard extras --- */
+.user-lb-streak {
+  font-size: 11px;
+  color: #FF6F00;
+  font-weight: 700;
+}
+
+.user-lb-tier {
+  font-size: 24px;
+}
+
+@media (max-width: 400px) {
+  .trails-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .share-prompt-buttons {
+    grid-template-columns: 1fr;
+  }
+}
