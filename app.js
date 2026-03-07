@@ -536,7 +536,9 @@ function createReviewCard(reviewId, review) {
   const overallScore = review.ratings?.overall || '-';
   const timeAgo = review.createdAt ? getTimeAgo(review.createdAt.toDate()) : 'just now';
 
-  const photoHTML = review.photoURL
+  // Only show real uploaded photos, not avatar/placeholder URLs
+  const hasRealReviewPhoto = review.photoURL && !review.photoURL.includes('dicebear.com');
+  const photoHTML = hasRealReviewPhoto
     ? `<img class="card-photo" src="${escapeHtml(review.photoURL)}" alt="Taco photo" loading="lazy" />`
     : '';
 
