@@ -947,6 +947,78 @@ a:hover { text-decoration: underline; }
   margin-bottom: 16px;
 }
 
+/* --- Enriched Place Info (description, hours, price) --- */
+.place-enriched-info {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.place-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  padding: 0 4px;
+}
+
+.place-hours-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.hours-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+
+.hours-toggle .material-icons-round {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+}
+
+.hours-chevron {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.place-hours-section.expanded .hours-chevron {
+  transform: rotate(180deg);
+}
+
+.hours-list {
+  display: none;
+  padding: 0 12px 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.place-hours-section.expanded .hours-list {
+  display: block;
+}
+
+.place-price-level {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 0 4px;
+}
+
+.place-price-level .price-active {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 /* ===================== LEADERBOARD ===================== */
 .leaderboard-header h2 {
   font-family: var(--font-display);

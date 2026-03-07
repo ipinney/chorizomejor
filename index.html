@@ -363,6 +363,19 @@
         </div>
       </div>
       <div class="place-tags" id="place-tags"></div>
+      <!-- Enriched place info: description, hours, price -->
+      <div id="place-enriched-info" class="place-enriched-info" style="display:none">
+        <div id="place-description" class="place-description"></div>
+        <div id="place-hours-section" class="place-hours-section" style="display:none">
+          <button class="hours-toggle" onclick="this.parentElement.classList.toggle('expanded')">
+            <span class="material-icons-round">schedule</span>
+            <span id="place-hours-status" class="hours-status"></span>
+            <span class="material-icons-round hours-chevron">expand_more</span>
+          </button>
+          <div id="place-hours-list" class="hours-list"></div>
+        </div>
+        <div id="place-price-level" class="place-price-level"></div>
+      </div>
       <div class="place-action-row">
         <button id="btn-add-review" class="btn-primary" onclick="openReviewModal()">
           <span class="material-icons-round">rate_review</span> Add Review

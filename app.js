@@ -1125,6 +1125,62 @@ async function loadPlaceDetail(placeId) {
     const tags = place.topTags || [];
     tagsEl.innerHTML = tags.map(t => `<span class="taco-tag">${escapeHtml(formatTag(t))}</span>`).join('');
 
+    // Enriched info: description, hours, price level
+    const enrichedEl = document.getElementById('place-enriched-info');
+    const descEl = document.getElementById('place-description');
+    const hoursSection = document.getElementById('place-hours-section');
+    const hoursStatus = document.getElementById('place-hours-status');
+    const hoursList = document.getElementById('place-hours-list');
+    const priceEl = document.getElementById('place-price-level');
+
+    let hasEnrichedInfo = false;
+
+    if (place.description) {
+      descEl.textContent = place.description;
+      descEl.style.display = '';
+      hasEnrichedInfo = true;
+    } else {
+      descEl.style.display = 'none';
+    }
+
+    if (place.hours && place.hours.length > 0) {
+      hoursSection.style.display = '';
+      hoursSection.classList.remove('expanded');
+      // Show today's hours in the toggle
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const today = dayNames[new Date().getDay()];
+      const todayHours = place.hours.find(h => h.startsWith(today));
+      hoursStatus.textContent = todayHours || 'See hours';
+      hoursList.innerHTML = place.hours.map(h => `<div>${escapeHtml(h)}</div>`).join('');
+      hasEnrichedInfo = true;
+    } else {
+      hoursSection.style.display = 'none';
+    }
+
+    if (place.priceLevel) {
+      const priceLevels = {
+        'PRICE_LEVEL_FREE': { dots: 0, label: 'Free' },
+        'PRICE_LEVEL_INEXPENSIVE': { dots: 1, label: 'Inexpensive' },
+        'PRICE_LEVEL_MODERATE': { dots: 2, label: 'Moderate' },
+        'PRICE_LEVEL_EXPENSIVE': { dots: 3, label: 'Expensive' },
+        'PRICE_LEVEL_VERY_EXPENSIVE': { dots: 4, label: 'Very Expensive' }
+      };
+      const pl = priceLevels[place.priceLevel] || { dots: 0, label: '' };
+      if (pl.label) {
+        const active = '<span class="price-active">$</span>'.repeat(pl.dots);
+        const inactive = '<span style="opacity:0.3">$</span>'.repeat(Math.max(0, 4 - pl.dots));
+        priceEl.innerHTML = `${active}${inactive} · ${pl.label}`;
+        priceEl.style.display = '';
+        hasEnrichedInfo = true;
+      } else {
+        priceEl.style.display = 'none';
+      }
+    } else {
+      priceEl.style.display = 'none';
+    }
+
+    enrichedEl.style.display = hasEnrichedInfo ? '' : 'none';
+
     // Banner — fallback chain: imageURL → photoURL → Mapbox satellite → emoji
     (() => {
       const imgEl = document.getElementById('place-banner-img');
