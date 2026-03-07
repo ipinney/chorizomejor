@@ -1,0 +1,9 @@
+{
+  "name": "chorizomejor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chorizo Mejor — Houston's Breakfast Taco Community",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

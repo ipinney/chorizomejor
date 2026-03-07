@@ -239,11 +239,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Handle ?place=xxx query params (from social share links — X strips hash fragments)
+  // Handle ?place=xxx and ?story=xxx query params (from social share links — X strips hash fragments)
   const urlParams = new URLSearchParams(window.location.search);
   const sharedPlaceId = urlParams.get('place');
+  const sharedStoryId = urlParams.get('story');
   if (sharedPlaceId) {
     window.history.replaceState(null, '', '/#/place/' + sharedPlaceId);
+  } else if (sharedStoryId) {
+    window.history.replaceState(null, '', '/#/story/' + sharedStoryId);
   }
 
   window.addEventListener('hashchange', handleRoute);
@@ -352,17 +355,20 @@ function toggleAuthMode(e) {
   e.preventDefault();
   authMode = authMode === 'signin' ? 'signup' : 'signin';
   const nameGroup = document.getElementById('auth-name-group');
+  const newsletterGroup = document.getElementById('auth-newsletter-group');
   const submitBtn = document.getElementById('auth-submit-btn');
   const toggleText = document.getElementById('auth-toggle-text');
   const toggleLink = document.getElementById('auth-toggle-link');
 
   if (authMode === 'signup') {
     nameGroup.classList.remove('hidden');
+    newsletterGroup.classList.remove('hidden');
     submitBtn.textContent = 'Create Account';
     toggleText.textContent = 'Already have an account?';
     toggleLink.textContent = 'Sign In';
   } else {
     nameGroup.classList.add('hidden');
+    newsletterGroup.classList.add('hidden');
     submitBtn.textContent = 'Sign In';
     toggleText.textContent = "Don't have an account?";
     toggleLink.textContent = 'Sign Up';
@@ -403,6 +409,9 @@ async function handleAuth(e) {
       });
 
       showToast('Welcome to Chorizo Mejor!');
+
+      // Auto-subscribe to newsletter if checked
+      subscribeIfChecked(email, displayName || email.split('@')[0]);
     } else {
       await auth.signInWithEmailAndPassword(email, password);
       showToast('Welcome back!');
@@ -3200,6 +3209,9 @@ async function loadStories() {
               <img class="beto-avatar" src="/images/beto-garza.jpg" alt="Beto Garza" onerror="this.style.display='none'">
               <span>By Beto Garza</span>
               <span>${dateStr}</span>
+              <button class="share-btn-sm" onclick="event.stopPropagation(); shareStory('copy', '${s.title.replace(/'/g, "\\'")}', '${doc.id}')" title="Copy link">
+                <span class="material-icons-round" style="font-size:16px;">share</span>
+              </button>
             </div>
           </div>
         </div>
@@ -3214,6 +3226,9 @@ async function loadStories() {
 async function loadStoryDetail(slug) {
   const container = document.getElementById('story-detail');
   container.innerHTML = '<div class="loading">Loading story…</div>';
+
+  // Check for preview mode (admin can view drafts/pending_approval articles)
+  const isAdmin = currentUser && currentUser.uid === 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
 
   try {
     // Try by document ID first (slug)
@@ -3230,6 +3245,13 @@ async function loadStoryDetail(slug) {
       return;
     }
 
+    // Check access: published articles are public, drafts/pending require admin
+    const storyStatus = doc.data().status;
+    if (storyStatus !== 'published' && !isAdmin) {
+      container.innerHTML = '<p style="text-align:center;padding:60px;color:#999;">This story is not published yet.</p>';
+      return;
+    }
+
     const s = doc.data();
     const date = s.publishedAt?.toDate ? s.publishedAt.toDate() : new Date(s.publishedAt);
     const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -3237,10 +3259,26 @@ async function loadStoryDetail(slug) {
     // Convert markdown-ish body to HTML (basic conversion)
     const bodyHtml = renderStoryBody(s.body || '');
 
+    // Admin preview banner for unpublished articles
+    const previewBanner = (storyStatus !== 'published' && isAdmin) ? `
+      <div class="story-preview-banner">
+        <span class="material-icons-round">visibility</span>
+        <strong>PREVIEW</strong> — Status: ${storyStatus}
+        <div class="story-preview-actions">
+          <button class="btn-approve" onclick="approveStory('${doc.id}')">
+            <span class="material-icons-round">check_circle</span> Approve & Publish
+          </button>
+          <button class="btn-reject" onclick="requestStoryRevisions('${doc.id}')">
+            <span class="material-icons-round">edit</span> Request Revisions
+          </button>
+        </div>
+      </div>` : '';
+
     container.innerHTML = `
       <button class="story-back" onclick="navigate('stories')">
         <span class="material-icons-round">arrow_back</span> All Stories
       </button>
+      ${previewBanner}
       <article class="story-full">
         <div class="story-label">BETO'S TABLE</div>
         <h1 class="story-title">${s.title}</h1>
@@ -3257,11 +3295,182 @@ async function loadStoryDetail(slug) {
         <div class="story-footer">
           <p><em>Every taco has a story. Pull up a chair.</em></p>
         </div>
+        <div class="story-share-bar">
+          <span class="story-share-label">Share this story</span>
+          <div class="story-share-buttons">
+            <button class="share-btn share-btn-x" onclick="shareStory('x', '${s.title}', '${doc.id}')" title="Share on X">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </button>
+            <button class="share-btn share-btn-fb" onclick="shareStory('facebook', '${s.title}', '${doc.id}')" title="Share on Facebook">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </button>
+            <button class="share-btn share-btn-copy" onclick="shareStory('copy', '${s.title}', '${doc.id}')" title="Copy link">
+              <span class="material-icons-round" style="font-size:18px;">link</span>
+            </button>
+          </div>
+        </div>
+        <div class="story-subscribe-cta">
+          <h3>Want more stories like this?</h3>
+          <p>Get Beto's Table delivered to your inbox every Monday.</p>
+          <form onsubmit="handleNewsletterSubscribe(event)" class="newsletter-form newsletter-form-inline">
+            <div class="newsletter-form-row">
+              <input type="email" placeholder="your@email.com" required class="newsletter-input" />
+              <button type="submit" class="btn-primary newsletter-btn">Subscribe</button>
+            </div>
+          </form>
+        </div>
       </article>
     `;
   } catch (err) {
     console.error('Error loading story:', err);
     container.innerHTML = '<p style="text-align:center;padding:60px;color:#999;">Error loading story.</p>';
+  }
+}
+
+// ===================== STORY APPROVAL (Admin) =====================
+
+async function approveStory(storyId) {
+  if (!currentUser || currentUser.uid !== 'zy8WSqtL3GUuyw89u1X1ZzENULP2') {
+    showToast('Admin access required');
+    return;
+  }
+  try {
+    await db.collection('stories').doc(storyId).update({
+      status: 'published',
+      publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      approvedBy: currentUser.uid
+    });
+    showToast('Article published!');
+    loadStoryDetail(storyId); // Reload to remove preview banner
+  } catch (err) {
+    console.error('Approve error:', err);
+    showToast('Error publishing article');
+  }
+}
+
+async function requestStoryRevisions(storyId) {
+  if (!currentUser || currentUser.uid !== 'zy8WSqtL3GUuyw89u1X1ZzENULP2') return;
+  const notes = prompt('Revision notes (what needs to change):');
+  if (!notes) return;
+  try {
+    await db.collection('stories').doc(storyId).update({
+      status: 'needs_revision',
+      revisionNotes: notes,
+      revisionRequestedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Revision requested');
+    loadStoryDetail(storyId);
+  } catch (err) {
+    console.error('Revision error:', err);
+    showToast('Error requesting revision');
+  }
+}
+
+// ===================== STORY SHARING =====================
+
+function shareStory(platform, title, storyId) {
+  const url = `https://chorizomejor.com/?story=${storyId}`;
+  const text = `${title} — Beto's Table on Chorizo Mejor`;
+
+  switch (platform) {
+    case 'x':
+      window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+      break;
+    case 'facebook':
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+      break;
+    case 'copy':
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+      } else {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Link copied!');
+      }
+      break;
+    default:
+      // Native share API
+      if (navigator.share) {
+        navigator.share({ title, text, url }).catch(() => {});
+      }
+  }
+}
+
+// ===================== NEWSLETTER SUBSCRIBE =====================
+
+async function handleNewsletterSubscribe(e) {
+  e.preventDefault();
+  const form = e.target;
+  const emailInput = form.querySelector('input[type="email"]');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const email = emailInput.value.trim().toLowerCase();
+
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email');
+    return;
+  }
+
+  // Disable while processing
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Subscribing…';
+
+  try {
+    const resp = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email,
+        name: currentUser ? (currentUser.displayName || '') : ''
+      })
+    });
+
+    const data = await resp.json();
+
+    if (resp.ok && data.success) {
+      showToast(data.message || 'Welcome to Beto\'s Table!');
+      emailInput.value = '';
+
+      // Show success state on the stories page signup form
+      const signupForm = document.getElementById('newsletter-form');
+      const successMsg = document.getElementById('newsletter-success');
+      if (signupForm && form === signupForm) {
+        signupForm.classList.add('hidden');
+        if (successMsg) successMsg.classList.remove('hidden');
+      }
+
+      // For inline forms (story detail), just show toast
+    } else {
+      showToast(data.error || data.message || 'Something went wrong');
+    }
+  } catch (err) {
+    console.error('Subscribe error:', err);
+    showToast('Could not subscribe. Try again later.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Subscribe';
+  }
+}
+
+// Subscribe during auth signup (if checkbox is checked)
+async function subscribeIfChecked(email, name) {
+  const checkbox = document.getElementById('auth-newsletter-check');
+  if (!checkbox || !checkbox.checked) return;
+
+  try {
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name })
+    });
+  } catch (err) {
+    console.error('Auto-subscribe error:', err);
+    // Non-blocking — don't fail the signup
   }
 }
 

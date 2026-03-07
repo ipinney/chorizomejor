@@ -2718,3 +2718,190 @@ a:hover { text-decoration: underline; }
   color: var(--color-text-secondary);
   font-style: italic;
 }
+
+/* ===================== STORY PREVIEW / APPROVAL ===================== */
+.story-preview-banner {
+  background: linear-gradient(135deg, #FF6F00, #F57C00);
+  color: #fff;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.story-preview-banner .material-icons-round { font-size: 20px; }
+.story-preview-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.btn-approve, .btn-reject {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.btn-approve { background: #fff; color: #2E7D32; }
+.btn-approve:hover { transform: translateY(-1px); }
+.btn-reject { background: rgba(255,255,255,0.2); color: #fff; }
+.btn-reject:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+.btn-approve .material-icons-round,
+.btn-reject .material-icons-round { font-size: 16px; }
+
+/* ===================== NEWSLETTER SIGNUP ===================== */
+.newsletter-signup {
+  background: linear-gradient(135deg, #D84315 0%, #BF360C 100%);
+  border-radius: 16px;
+  padding: 32px 24px;
+  margin: 0 16px 24px;
+  text-align: center;
+}
+.newsletter-signup-inner h3 {
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.newsletter-signup-inner p {
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.newsletter-form-row {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.newsletter-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.newsletter-input::placeholder { color: rgba(255,255,255,0.6); }
+.newsletter-input:focus { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.2); }
+.newsletter-btn {
+  background: #fff !important;
+  color: #D84315 !important;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.newsletter-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.newsletter-btn:disabled { opacity: 0.7; transform: none; }
+.newsletter-fine-print {
+  color: rgba(255,255,255,0.5) !important;
+  font-size: 12px !important;
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+}
+.newsletter-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 8px 0;
+}
+.newsletter-success p { color: #fff !important; font-size: 15px; margin: 0 !important; }
+
+/* Subscribe CTA in story detail */
+.story-subscribe-cta {
+  background: linear-gradient(135deg, #D84315 0%, #BF360C 100%);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  margin-top: 40px;
+}
+.story-subscribe-cta h3 { color: #fff; font-size: 20px; margin-bottom: 4px; }
+.story-subscribe-cta p { color: rgba(255,255,255,0.85); font-size: 14px; margin-bottom: 16px; }
+
+/* Auth newsletter checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+.checkbox-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: #D84315;
+  flex-shrink: 0;
+}
+
+/* ===================== STORY SHARING ===================== */
+.story-share-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: 32px;
+}
+.story-share-label {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.story-share-buttons {
+  display: flex;
+  gap: 8px;
+}
+.share-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.share-btn:hover { background: rgba(255,255,255,0.1); color: var(--color-text); transform: translateY(-1px); }
+.share-btn-x:hover { color: #1DA1F2; }
+.share-btn-fb:hover { color: #1877F2; }
+.share-btn-copy:hover { color: #D84315; }
+
+/* Small share button on story cards */
+.share-btn-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: auto;
+  transition: color 0.2s;
+}
+.share-btn-sm:hover { color: #D84315; }

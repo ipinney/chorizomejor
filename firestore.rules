@@ -124,6 +124,33 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // --- Stories (Beto's Table articles) ---
+    match /stories/{storyId} {
+      // Public can read published stories only
+      allow read: if resource.data.status == 'published';
+
+      // Admin (Ivan) has full access
+      allow read, write: if isSignedIn()
+        && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
+    }
+
+    // --- Newsletter Subscribers ---
+    match /newsletter_subscribers/{subId} {
+      // Anyone can subscribe (create)
+      allow create: if request.resource.data.email is string
+        && request.resource.data.email.size() > 0;
+
+      // Admin (Ivan) has full access
+      allow read, write: if isSignedIn()
+        && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
+    }
+
+    // --- Outreach Pipeline (admin only) ---
+    match /outreach/{outreachId} {
+      allow read, write: if isSignedIn()
+        && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
+    }
+
     // --- Catch-all: deny everything else ---
     match /{document=**} {
       allow read, write: if false;

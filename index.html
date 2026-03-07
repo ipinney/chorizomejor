@@ -39,7 +39,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-  <link rel="stylesheet" href="style.css?v=40" />
+  <link rel="stylesheet" href="style.css?v=41" />
   <!-- Mapbox GL JS -->
   <script>window.__mb=['pk.eyJ1IjoiaXBpbm5leTIi','LCJhIjoiY203M3Q5YTYwMDJ5cDJycTh1MHJscHA1ZSJ9','.eg3CEbw2FI2WSUUc1N9CfA'];</script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
@@ -421,6 +421,12 @@
             <label for="auth-password">Password</label>
             <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
           </div>
+          <div id="auth-newsletter-group" class="form-group hidden">
+            <label class="checkbox-label">
+              <input type="checkbox" id="auth-newsletter-check" checked />
+              <span>Subscribe to Beto's Table — weekly taco stories in your inbox</span>
+            </label>
+          </div>
           <button type="submit" class="btn-primary btn-full" id="auth-submit-btn">Sign In</button>
           <p class="auth-toggle">
             <span id="auth-toggle-text">Don't have an account?</span>
@@ -442,6 +448,25 @@
           <strong>Beto "El Gordo" Garza</strong> has been eating breakfast tacos in Houston since before you were born. A third-generation Houstonian raised in the East End, he spent 20 years in restaurant kitchens before picking up a pen. His column, <em>Beto's Table</em>, is a weekly love letter to the taqueros, cocineras, and breakfast spots that make this city the best taco town in America.
         </div>
       </div>
+      <!-- Newsletter Subscribe Form -->
+      <div class="newsletter-signup" id="newsletter-signup">
+        <div class="newsletter-signup-inner">
+          <h3>Get Beto's Table in your inbox</h3>
+          <p>One taqueria. One story. Every Monday.</p>
+          <form id="newsletter-form" onsubmit="handleNewsletterSubscribe(event)" class="newsletter-form">
+            <div class="newsletter-form-row">
+              <input type="email" id="newsletter-email" placeholder="your@email.com" required class="newsletter-input" />
+              <button type="submit" class="btn-primary newsletter-btn" id="newsletter-submit-btn">Subscribe</button>
+            </div>
+            <p class="newsletter-fine-print">Free. No spam. Unsubscribe anytime.</p>
+          </form>
+          <div id="newsletter-success" class="newsletter-success hidden">
+            <span class="material-icons-round" style="color:#4CAF50;font-size:28px;">check_circle</span>
+            <p>Welcome to the table! Check your inbox for a welcome from Beto.</p>
+          </div>
+        </div>
+      </div>
+
       <div id="stories-list" class="card-list"></div>
       <div id="stories-empty" class="empty-state hidden">
         <span class="empty-icon">📝</span>
@@ -708,6 +733,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="neighborhoods.js"></script>
-  <script src="app.js?v=40"></script>
+  <script src="app.js?v=41"></script>
 </body>
 </html>
