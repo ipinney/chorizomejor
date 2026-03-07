@@ -2553,6 +2553,35 @@ a:hover { text-decoration: underline; }
   font-style: italic;
 }
 
+/* Beto bio */
+.beto-bio {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.beto-bio-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--color-primary);
+}
+.beto-bio-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.beto-bio-text strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
 /* Story card */
 .story-card {
   background: var(--color-surface);
