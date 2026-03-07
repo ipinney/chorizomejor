@@ -3,7 +3,7 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v25';
+const CACHE_NAME = 'chorizo-mejor-v26';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

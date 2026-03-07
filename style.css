@@ -2247,3 +2247,183 @@ a:hover { text-decoration: underline; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ===================== FIRST REVIEW CTA ===================== */
+.first-review-cta {
+  text-align: center;
+  padding: 32px 20px;
+  background: linear-gradient(135deg, #FFF3E0, #FFF8E1);
+  border-radius: 16px;
+  border: 2px dashed var(--color-primary);
+  margin: 8px 0;
+}
+
+.first-review-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: pulse-icon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.first-review-cta h3 {
+  color: var(--color-primary);
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.first-review-cta p {
+  color: #5D4037;
+  font-size: 14px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.first-review-btn {
+  font-size: 16px;
+  padding: 12px 28px;
+  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  animation: glow-btn 2s ease-in-out infinite;
+}
+
+@keyframes glow-btn {
+  0%, 100% { box-shadow: 0 2px 8px rgba(216, 67, 21, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(216, 67, 21, 0.5); }
+}
+
+.first-review-rewards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.reward-chip {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #5D4037;
+  font-weight: 500;
+}
+
+/* ===================== PLACE CARD BADGES ===================== */
+.place-card-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 2px 0;
+}
+
+.place-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
+.place-badge.needs-review {
+  background: #FFF3E0;
+  color: #E65100;
+  border: 1px solid #FFB74D;
+}
+
+.place-badge.new-spot {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #81C784;
+}
+
+.place-badge.trending {
+  background: #FBE9E7;
+  color: #BF360C;
+  border: 1px solid #FF8A65;
+}
+
+/* ===================== WEEKLY CHALLENGE BANNER ===================== */
+.challenge-banner {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 0 16px;
+  color: #fff;
+}
+
+.challenge-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.challenge-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.challenge-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.challenge-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFD54F;
+  margin-bottom: 2px;
+}
+
+.challenge-desc {
+  font-size: 13px;
+  color: #B0BEC5;
+}
+
+.challenge-reward {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4CAF50;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.challenge-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.challenge-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6D00, #FFD54F);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.challenge-bar-fill.complete {
+  background: linear-gradient(90deg, #4CAF50, #81C784);
+}
+
+.challenge-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFD54F;
+  min-width: 40px;
+  text-align: right;
+}

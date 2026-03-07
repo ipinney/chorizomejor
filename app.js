@@ -181,13 +181,18 @@ window.addEventListener('appinstalled', () => {
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
     currentUser = user;
     updateAuthUI();
     if (window.location.hash) {
       handleRoute();
     } else {
       navigate('feed');
+    }
+    // Daily login XP bonus
+    if (user) {
+      checkDailyLoginBonus(user.uid);
+      checkWeeklyChallenge(user.uid);
     }
   });
 
@@ -565,6 +570,7 @@ async function toggleLike(reviewId, btn) {
     });
     btn.classList.add('liked');
     countSpan.textContent = likes.length + 1;
+    incrementChallengeProgress(currentUser.uid, 'weeklyLikes');
   }
 }
 
@@ -650,6 +656,7 @@ async function postComment(reviewId) {
     toggleComments(reviewId);
 
     showToast('Comment posted!');
+    incrementChallengeProgress(currentUser.uid, 'weeklyComments');
   } catch (err) {
     showToast('Could not post comment');
   }
@@ -849,15 +856,28 @@ function createPlaceCard(placeId, place) {
     imgHtml = `<div class="place-card-img">${typeEmoji[place.type] || '🌮'}</div>`;
   }
 
+  // Place card badges
+  const badges = [];
+  const reviewCount = place.reviewCount || 0;
+  const createdMs = place.createdAt?.toMillis?.() || 0;
+  const isNew = createdMs > Date.now() - 14 * 86400000; // less than 2 weeks old
+  const isTrending = reviewCount >= 5 && (place.avgOverall || 0) >= 4;
+  const needsReviews = reviewCount === 0;
+
+  if (needsReviews) badges.push('<span class="place-badge needs-review">🎯 Be First!</span>');
+  else if (isNew) badges.push('<span class="place-badge new-spot">✨ New</span>');
+  if (isTrending) badges.push('<span class="place-badge trending">🔥 Trending</span>');
+
   card.innerHTML = `
     <div class="place-card">
       ${imgHtml}
       <div class="place-card-info">
         <div class="place-card-name">${escapeHtml(place.name)}</div>
         <div class="place-card-address">${escapeHtml(place.address || '')}</div>
+        <div class="place-card-badges">${badges.join('')}</div>
         <div class="place-card-stats">
           <span class="place-card-score">★ ${score}${score !== '-' ? '/5' : ''}</span>
-          <span>${place.reviewCount || 0} reviews</span>
+          <span>${reviewCount} reviews</span>
           <span>${formatNeighborhood(place.neighborhood)}</span>
         </div>
       </div>
@@ -1258,7 +1278,20 @@ async function loadPlaceReviews(placeId) {
 
     list.innerHTML = '';
     if (snap.empty) {
-      list.innerHTML = '<div class="empty-state"><p>No reviews yet. Be the first!</p></div>';
+      list.innerHTML = `
+        <div class="first-review-cta">
+          <div class="first-review-icon">🎯</div>
+          <h3>No reviews yet!</h3>
+          <p>Be the first to review this spot and earn the <strong>First!</strong> badge + bonus XP</p>
+          <button class="btn-primary first-review-btn" onclick="openReviewModal()">
+            <span class="material-icons-round">rate_review</span> Be the First to Review
+          </button>
+          <div class="first-review-rewards">
+            <span class="reward-chip">🎯 First! Badge</span>
+            <span class="reward-chip">⭐ +25 Bonus XP</span>
+          </div>
+        </div>
+      `;
       return;
     }
 
@@ -1386,6 +1419,7 @@ async function submitPlace(e) {
 
     closePlaceModal();
     showToast(`${name} added!`);
+    if (currentUser) incrementChallengeProgress(currentUser.uid, 'weeklyNewSpots');
     navigate('place', docRef.id);
   } catch (err) {
     showToast('Could not add place');
@@ -1537,6 +1571,17 @@ async function submitReview(e) {
     if (text.length >= 200) reviewXP += XP_REWARDS.detailedReview;
     await awardXP(currentUser.uid, reviewXP, 'submitReview');
     await updateStreak(currentUser.uid);
+
+    // Weekly challenge tracking
+    incrementChallengeProgress(currentUser.uid, 'weeklyReviews');
+    if (photoURL) incrementChallengeProgress(currentUser.uid, 'weeklyPhotos');
+    if (text.length >= 200) incrementChallengeProgress(currentUser.uid, 'weeklyDetailed');
+
+    // Review count milestone celebrations
+    const newCount = (await db.collection('users').doc(currentUser.uid).get()).data()?.reviewCount || 0;
+    if ([5, 10, 25, 50, 75, 100].includes(newCount)) {
+      setTimeout(() => showMilestoneToast(newCount), 2000);
+    }
 
     // Trigger share prompt after review
     setTimeout(() => {
@@ -2123,6 +2168,160 @@ async function updateStreak(userId) {
   }
 }
 
+// ===================== DAILY LOGIN BONUS =====================
+async function checkDailyLoginBonus(userId) {
+  if (!userId) return;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return;
+    const data = userDoc.data();
+
+    const now = new Date();
+    const today = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+    const lastLogin = data.lastLoginDate || '';
+
+    if (lastLogin === today) return; // Already got bonus today
+
+    // Random multiplier: 10% chance of 2x, 5% chance of 5x
+    const roll = Math.random();
+    let multiplier = 1;
+    let multiplierText = '';
+    if (roll < 0.05) {
+      multiplier = 5;
+      multiplierText = ' (5x Lucky Day!)';
+    } else if (roll < 0.15) {
+      multiplier = 2;
+      multiplierText = ' (2x Bonus!)';
+    }
+
+    const xpAmount = XP_REWARDS.dailyLogin * multiplier;
+    await db.collection('users').doc(userId).update({
+      lastLoginDate: today,
+      xp: firebase.firestore.FieldValue.increment(xpAmount),
+      loginDays: firebase.firestore.FieldValue.increment(1)
+    });
+
+    setTimeout(() => {
+      showToast(`☀️ Daily login: +${xpAmount} XP${multiplierText}`);
+    }, 1500);
+  } catch (err) {
+    console.error('Daily login bonus error:', err);
+  }
+}
+
+// ===================== WEEKLY CHALLENGES =====================
+const WEEKLY_CHALLENGES = [
+  { id: 'review3', name: 'Review Spree', desc: 'Submit 3 reviews this week', icon: '📝', target: 3, field: 'weeklyReviews', xpReward: 50 },
+  { id: 'photo2', name: 'Shutterbug Week', desc: 'Upload 2 photos with reviews', icon: '📸', target: 2, field: 'weeklyPhotos', xpReward: 40 },
+  { id: 'hood2', name: 'Hood Crawler', desc: 'Review in 2 different neighborhoods', icon: '🏘️', target: 2, field: 'weeklyHoods', xpReward: 45 },
+  { id: 'like5', name: 'Spread the Love', desc: 'Like 5 reviews', icon: '❤️', target: 5, field: 'weeklyLikes', xpReward: 30 },
+  { id: 'comment3', name: 'Taco Talk', desc: 'Leave 3 comments', icon: '💬', target: 3, field: 'weeklyComments', xpReward: 35 },
+  { id: 'share2', name: 'Word of Mouth', desc: 'Share 2 reviews', icon: '📢', target: 2, field: 'weeklyShares', xpReward: 30 },
+  { id: 'detailed2', name: 'Deep Dive', desc: 'Write 2 reviews with 200+ characters', icon: '✍️', target: 2, field: 'weeklyDetailed', xpReward: 45 },
+  { id: 'newspot1', name: 'Trailblazer', desc: 'Add a new taco spot', icon: '🗺️', target: 1, field: 'weeklyNewSpots', xpReward: 60 }
+];
+
+function getCurrentWeekChallenge() {
+  // Rotate challenges weekly using week number
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.floor(((now - startOfYear) / 86400000 + startOfYear.getDay()) / 7);
+  return WEEKLY_CHALLENGES[weekNum % WEEKLY_CHALLENGES.length];
+}
+
+function getWeekKey() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.floor(((now - startOfYear) / 86400000 + startOfYear.getDay()) / 7);
+  return `${now.getFullYear()}-W${weekNum}`;
+}
+
+async function checkWeeklyChallenge(userId) {
+  if (!userId) return;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return;
+    const data = userDoc.data();
+    const challenge = getCurrentWeekChallenge();
+    const weekKey = getWeekKey();
+
+    // Reset weekly progress if new week
+    if (data.challengeWeek !== weekKey) {
+      await db.collection('users').doc(userId).update({
+        challengeWeek: weekKey,
+        challengeId: challenge.id,
+        challengeProgress: 0,
+        challengeCompleted: false
+      });
+    }
+
+    // Show challenge banner on feed after short delay
+    setTimeout(() => renderChallengeBanner(challenge, data.challengeWeek === weekKey ? (data.challengeProgress || 0) : 0, data.challengeCompleted || false), 2000);
+  } catch (err) {
+    console.error('Weekly challenge error:', err);
+  }
+}
+
+function renderChallengeBanner(challenge, progress, completed) {
+  const existing = document.getElementById('challenge-banner');
+  if (existing) existing.remove();
+
+  const feedList = document.getElementById('feed-list');
+  if (!feedList) return;
+
+  const pct = Math.min(100, Math.round((progress / challenge.target) * 100));
+  const banner = document.createElement('div');
+  banner.id = 'challenge-banner';
+  banner.className = 'challenge-banner';
+  banner.innerHTML = `
+    <div class="challenge-header">
+      <span class="challenge-icon">${challenge.icon}</span>
+      <div class="challenge-info">
+        <div class="challenge-title">Weekly Challenge: ${challenge.name}</div>
+        <div class="challenge-desc">${challenge.desc}</div>
+      </div>
+      <span class="challenge-reward">${completed ? '✅' : `+${challenge.xpReward} XP`}</span>
+    </div>
+    <div class="challenge-progress">
+      <div class="challenge-bar">
+        <div class="challenge-bar-fill ${completed ? 'complete' : ''}" style="width:${pct}%"></div>
+      </div>
+      <span class="challenge-count">${Math.min(progress, challenge.target)}/${challenge.target}</span>
+    </div>
+  `;
+
+  feedList.parentNode.insertBefore(banner, feedList);
+}
+
+async function incrementChallengeProgress(userId, field) {
+  if (!userId) return;
+  try {
+    const challenge = getCurrentWeekChallenge();
+    if (challenge.field !== field) return; // Not the current challenge
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return;
+    const data = userDoc.data();
+
+    if (data.challengeCompleted) return; // Already completed this week
+
+    const newProgress = (data.challengeProgress || 0) + 1;
+    const updates = { challengeProgress: newProgress };
+
+    if (newProgress >= challenge.target) {
+      updates.challengeCompleted = true;
+      await db.collection('users').doc(userId).update(updates);
+      awardXP(userId, challenge.xpReward, 'weeklyChallenge');
+      showToast(`🏆 Weekly challenge complete! +${challenge.xpReward} XP!`);
+    } else {
+      await db.collection('users').doc(userId).update(updates);
+      showToast(`${challenge.icon} Challenge progress: ${newProgress}/${challenge.target}`);
+    }
+  } catch (err) {
+    console.error('Challenge progress error:', err);
+  }
+}
+
 // ===================== SOCIAL SHARING =====================
 function shareToX(text, url) {
   const tweetText = encodeURIComponent(text);
@@ -2163,6 +2362,7 @@ async function trackShare(userId) {
       shareCount: firebase.firestore.FieldValue.increment(1)
     });
     awardXP(userId, XP_REWARDS.shareReview, 'share');
+    incrementChallengeProgress(userId, 'weeklyShares');
   } catch (err) {
     console.error('Share tracking error:', err);
   }
@@ -2231,6 +2431,27 @@ function showLevelUpModal(tier) {
 
   // Auto-close after 4 seconds
   setTimeout(() => modal.classList.add('hidden'), 4000);
+}
+
+// ===================== MILESTONE CELEBRATIONS =====================
+function showMilestoneToast(count) {
+  const milestones = {
+    5: { title: '5 Reviews!', msg: "You're building taco expertise!", icon: '🌮' },
+    10: { title: 'Double Digits!', msg: 'A true taco explorer!', icon: '🔟' },
+    25: { title: '25 Reviews!', msg: "Quarter century of tacos!", icon: '🎉' },
+    50: { title: 'Half Century!', msg: 'You eat, sleep, breathe tacos!', icon: '🏅' },
+    75: { title: '75 Reviews!', msg: 'Legend status approaching...', icon: '⚡' },
+    100: { title: 'THE 100 CLUB!', msg: "You've achieved greatness!", icon: '💯' }
+  };
+  const m = milestones[count];
+  if (!m) return;
+
+  const modal = document.getElementById('levelup-modal');
+  document.getElementById('levelup-icon').textContent = m.icon;
+  document.getElementById('levelup-title').textContent = m.title;
+  document.getElementById('levelup-desc').textContent = m.msg;
+  modal.classList.remove('hidden');
+  setTimeout(() => modal.classList.add('hidden'), 4500);
 }
 
 // ===================== ONBOARDING QUEST =====================
@@ -2478,11 +2699,20 @@ async function checkBadges(userId) {
     const totalComments = reviews.reduce((sum, r) => sum + (r.commentCount || 0), 0);
     const hour = new Date().getHours();
 
-    // First reviewer check - was this place's first review?
-    const isFirstReview = reviews.length > 0 && reviews.some(r => {
-      // We'll check this based on review count at time - approximate
-      return true; // simplified - check place reviewCount
-    });
+    // First reviewer check — check if user was first to review any place
+    let isFirstReviewer = false;
+    try {
+      const placesSnap = await db.collection('places').limit(200).get();
+      const placeReviewCounts = {};
+      placesSnap.forEach(d => { placeReviewCounts[d.id] = d.data().reviewCount || 0; });
+      // If any place the user reviewed has only 1 review total, they were first
+      for (const r of reviews) {
+        if (r.placeId && placeReviewCounts[r.placeId] === 1) {
+          isFirstReviewer = true;
+          break;
+        }
+      }
+    } catch { isFirstReviewer = false; }
 
     // Check each badge
     const checks = {
@@ -2505,7 +2735,7 @@ async function checkBadges(userId) {
       veteran: count >= 20 && userData.joinedAt && (Date.now() - userData.joinedAt.toDate().getTime() > 180 * 86400000),
       early_bird: hour < 7,
       night_owl: hour >= 23,
-      first_reviewer: false // Would need place-level check
+      first_reviewer: isFirstReviewer
     };
 
     let newlyEarned = [];
