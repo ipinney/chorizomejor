@@ -1747,7 +1747,7 @@ async function updatePlaceAggregates(placeId, newRatings, wouldWait, tags) {
       const count = (data.reviewCount || 0) + 1;
 
       // Running average: newAvg = ((oldAvg * oldCount) + newVal) / newCount
-      const categories = ['overall', 'tortilla', 'protein', 'salsa', 'value'];
+      const categories = ['tortilla', 'protein', 'salsa', 'value'];
       const updates = { reviewCount: count };
 
       categories.forEach(cat => {
@@ -1756,6 +1756,9 @@ async function updatePlaceAggregates(placeId, newRatings, wouldWait, tags) {
         const oldCount = data.reviewCount || 0;
         updates[key] = ((oldAvg * oldCount) + newRatings[cat]) / count;
       });
+
+      // Derive overall from component averages (never store independently)
+      updates.avgOverall = Math.round(((updates.avgTortilla + updates.avgProtein + updates.avgSalsa + updates.avgValue) / 4) * 10) / 10;
 
       if (wouldWait) {
         updates.waitYesCount = (data.waitYesCount || 0) + 1;
