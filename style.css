@@ -340,6 +340,7 @@ a:hover { text-decoration: underline; }
 
 .feed-tabs, .leaderboard-tabs, .profile-tabs {
   display: flex;
+  justify-content: center;
   gap: 4px;
   margin-bottom: 16px;
   overflow-x: auto;
