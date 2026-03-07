@@ -1424,10 +1424,10 @@ function updateRatingVal(category, value) {
 }
 
 function recalcOverall() {
-  const t = parseInt(document.getElementById('rate-tortilla').value);
-  const p = parseInt(document.getElementById('rate-protein').value);
-  const s = parseInt(document.getElementById('rate-salsa').value);
-  const v = parseInt(document.getElementById('rate-value').value);
+  const t = parseFloat(document.getElementById('rate-tortilla').value);
+  const p = parseFloat(document.getElementById('rate-protein').value);
+  const s = parseFloat(document.getElementById('rate-salsa').value);
+  const v = parseFloat(document.getElementById('rate-value').value);
   const avg = (t + p + s + v) / 4;
   document.getElementById('val-overall').textContent = avg.toFixed(1);
   const bar = document.getElementById('overall-bar');
@@ -1460,10 +1460,10 @@ async function submitReview(e) {
   e.preventDefault();
   if (!currentUser || !currentPlaceId) return;
 
-  const tortilla = parseInt(document.getElementById('rate-tortilla').value);
-  const protein = parseInt(document.getElementById('rate-protein').value);
-  const salsa = parseInt(document.getElementById('rate-salsa').value);
-  const value = parseInt(document.getElementById('rate-value').value);
+  const tortilla = parseFloat(document.getElementById('rate-tortilla').value);
+  const protein = parseFloat(document.getElementById('rate-protein').value);
+  const salsa = parseFloat(document.getElementById('rate-salsa').value);
+  const value = parseFloat(document.getElementById('rate-value').value);
   const ratings = {
     overall: Math.round(((tortilla + protein + salsa + value) / 4) * 10) / 10,
     tortilla,
