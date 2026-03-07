@@ -1818,9 +1818,9 @@ async function loadProfileContent(userId) {
 
   try {
     if (profileTab === 'reviews') {
+      // Fetch without orderBy to avoid composite index requirement; sort client-side
       const snap = await db.collection('reviews')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .limit(20).get();
 
       content.innerHTML = '';
@@ -1828,13 +1828,18 @@ async function loadProfileContent(userId) {
         content.innerHTML = '<div class="empty-state"><p>No reviews yet</p></div>';
         return;
       }
-      snap.forEach(doc => {
+      const docs = snap.docs.sort((a, b) => {
+        const aTime = a.data().createdAt?.toMillis?.() || 0;
+        const bTime = b.data().createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+      docs.forEach(doc => {
         content.appendChild(createReviewCard(doc.id, doc.data()));
       });
     } else if (profileTab === 'favorites') {
+      // Fetch without orderBy to avoid composite index requirement; sort client-side
       const snap = await db.collection('reviews')
         .where('likes', 'array-contains', userId)
-        .orderBy('createdAt', 'desc')
         .limit(20).get();
 
       content.innerHTML = '';
@@ -1842,7 +1847,12 @@ async function loadProfileContent(userId) {
         content.innerHTML = '<div class="empty-state"><p>No favorites yet</p></div>';
         return;
       }
-      snap.forEach(doc => {
+      const docs = snap.docs.sort((a, b) => {
+        const aTime = a.data().createdAt?.toMillis?.() || 0;
+        const bTime = b.data().createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+      docs.forEach(doc => {
         content.appendChild(createReviewCard(doc.id, doc.data()));
       });
     } else if (profileTab === 'lists') {
