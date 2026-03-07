@@ -82,6 +82,49 @@ let leaderboardTab = 'overall';
 let profileTab = 'reviews';
 let selectedTags = [];
 
+// ===================== GOOGLE PLACES PHOTO CACHE =====================
+const _photoCache = {};
+
+/**
+ * Fetch a real food photo URL from Google Places API via /api/photos proxy.
+ * Returns the first photo URL or null. Results cached in-memory.
+ */
+async function fetchPlacePhoto(name, lat, lng, size) {
+  const key = `${name}|${lat}|${lng}`;
+  if (_photoCache[key] !== undefined) return _photoCache[key];
+
+  try {
+    const params = new URLSearchParams({ name, lat, lng, size: size || 400 });
+    const res = await fetch(`/api/photos?${params}`);
+    if (!res.ok) { _photoCache[key] = null; return null; }
+    const data = await res.json();
+    const url = data.photos && data.photos.length > 0 ? data.photos[0].url : null;
+    _photoCache[key] = url;
+    return url;
+  } catch {
+    _photoCache[key] = null;
+    return null;
+  }
+}
+
+/**
+ * Lazily load a real photo for a place card image element.
+ * Replaces satellite/emoji placeholder with a real food photo.
+ */
+function lazyLoadPlacePhoto(imgEl, place) {
+  if (!place.name || !place.lat || !place.lng) return;
+  if (place.photoURL || place.imageURL || place.googlePhotoURL) return; // already has a photo
+
+  fetchPlacePhoto(place.name, place.lat, place.lng, 200).then(url => {
+    if (url && imgEl && imgEl.isConnected) {
+      imgEl.src = url;
+      imgEl.alt = place.name;
+      imgEl.classList.add('place-card-img');
+      imgEl.style.objectFit = 'cover';
+    }
+  });
+}
+
 // ===================== GAMIFICATION CONFIG =====================
 const TACO_TIERS = [
   { level: 1, name: 'Taco Newbie', icon: '🌱', minReviews: 0, minXP: 0 },
@@ -847,11 +890,13 @@ function createPlaceCard(placeId, place) {
   const mbToken = (window.__mb || []).join('');
 
   let imgHtml;
-  if (place.photoURL) {
-    imgHtml = `<img class="place-card-img" src="${escapeHtml(place.photoURL)}" alt="${escapeHtml(place.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
+  const hasRealPhoto = place.photoURL || place.imageURL || place.googlePhotoURL;
+  if (hasRealPhoto) {
+    const photoSrc = place.googlePhotoURL || place.photoURL || place.imageURL;
+    imgHtml = `<img class="place-card-img" src="${escapeHtml(photoSrc)}" alt="${escapeHtml(place.name)}" loading="lazy" style="object-fit:cover" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
   } else if (place.lat && place.lng && mbToken) {
-    // Use Mapbox satellite thumbnail as placeholder
-    imgHtml = `<img class="place-card-img" src="https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},16,0/72x72@2x?access_token=${mbToken}" alt="${escapeHtml(place.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
+    // Temporary satellite placeholder — will be replaced by real photo
+    imgHtml = `<img class="place-card-img" data-needs-photo="true" src="https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},16,0/72x72@2x?access_token=${mbToken}" alt="${escapeHtml(place.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'place-card-img\\'>${typeEmoji[place.type] || '🌮'}</div>'" />`;
   } else {
     imgHtml = `<div class="place-card-img">${typeEmoji[place.type] || '🌮'}</div>`;
   }
@@ -883,6 +928,12 @@ function createPlaceCard(placeId, place) {
       </div>
     </div>
   `;
+
+  // Lazy-load real Google Places photo for cards without a photo
+  if (!hasRealPhoto && place.lat && place.lng) {
+    const imgEl = card.querySelector('img[data-needs-photo]');
+    if (imgEl) lazyLoadPlacePhoto(imgEl, place);
+  }
 
   return card;
 }
@@ -1181,7 +1232,7 @@ async function loadPlaceDetail(placeId) {
 
     enrichedEl.style.display = hasEnrichedInfo ? '' : 'none';
 
-    // Banner — fallback chain: imageURL → photoURL → Mapbox satellite → emoji
+    // Banner — fallback chain: imageURL → googlePhotoURL → photoURL → Google Places API → Mapbox satellite → emoji
     (() => {
       const imgEl = document.getElementById('place-banner-img');
       const emojiEl = document.querySelector('#place-photo-banner .place-banner-emoji');
@@ -1189,16 +1240,35 @@ async function loadPlaceDetail(placeId) {
       let src = null;
       if (place.imageURL) {
         src = place.imageURL;
+      } else if (place.googlePhotoURL) {
+        src = place.googlePhotoURL;
       } else if (place.photoURL) {
         src = place.photoURL;
-      } else if (place.lat && place.lng && mbToken) {
-        src = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},15,0/600x200@2x?access_token=${mbToken}`;
       }
+
       if (src) {
         imgEl.src = src;
         imgEl.alt = place.name || 'Place photo';
         imgEl.style.display = 'block';
+        imgEl.style.objectFit = 'cover';
         emojiEl.style.display = 'none';
+      } else if (place.lat && place.lng) {
+        // Show satellite as temp placeholder, then try Google Places photo
+        if (mbToken) {
+          imgEl.src = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${place.lng},${place.lat},15,0/600x200@2x?access_token=${mbToken}`;
+          imgEl.alt = place.name || 'Place photo';
+          imgEl.style.display = 'block';
+          emojiEl.style.display = 'none';
+        }
+        // Async upgrade to real photo
+        fetchPlacePhoto(place.name, place.lat, place.lng, 600).then(url => {
+          if (url) {
+            imgEl.src = url;
+            imgEl.style.objectFit = 'cover';
+            imgEl.style.display = 'block';
+            emojiEl.style.display = 'none';
+          }
+        });
       } else {
         imgEl.style.display = 'none';
         emojiEl.style.display = 'flex';

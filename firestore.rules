@@ -12,16 +12,28 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Only allow specific fields to be changed
+    function onlyUpdates(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
     // --- Users ---
     match /users/{userId} {
-      // Anyone can read user profiles
+      // Anyone can read user profiles (public info only — emails are stored
+      // but display name, photo, stats are the public-facing data)
       allow read: if true;
 
       // Users can create their own profile on signup
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['displayName', 'email'])
+        && request.resource.data.displayName is string
+        && request.resource.data.email is string;
 
-      // Users can update their own profile
-      allow update: if isOwner(userId);
+      // Users can update ONLY their own profile, and only safe fields
+      allow update: if isOwner(userId)
+        && onlyUpdates(['displayName', 'photoURL', 'handle', 'reviewCount',
+                         'followerCount', 'followingCount', 'followers', 'following',
+                         'badges', 'tier']);
 
       // No deleting user profiles
       allow delete: if false;
@@ -32,11 +44,21 @@ service cloud.firestore {
       // Anyone can read places
       allow read: if true;
 
-      // Signed-in users can add places
-      allow create: if isSignedIn();
+      // Signed-in users can add places (require name + address)
+      allow create: if isSignedIn()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.address is string;
 
-      // Signed-in users can update places (for aggregate updates from reviews)
-      allow update: if isSignedIn();
+      // Signed-in users can update aggregate fields only
+      // (review counts, averages, tags, wait counts, and external link fields)
+      allow update: if isSignedIn()
+        && onlyUpdates(['reviewCount', 'avgOverall', 'avgTortilla', 'avgProtein',
+                         'avgSalsa', 'avgValue', 'waitYesCount', 'topTags',
+                         'imageURL', 'websiteURL', 'yelpURL', 'googleMapsURL',
+                         'orderURL', 'phone', 'photoURL', 'googleRating',
+                         'googleReviewCount', 'googlePhotoURL']);
 
       // No deleting places
       allow delete: if false;
@@ -49,10 +71,22 @@ service cloud.firestore {
 
       // Signed-in users can create reviews with their own userId
       allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.placeId is string
+        && request.resource.data.overall is number
+        && request.resource.data.overall >= 1
+        && request.resource.data.overall <= 10;
 
-      // Signed-in users can update reviews (for likes, comment counts)
-      allow update: if isSignedIn();
+      // Author can update their own review text/ratings.
+      // Any signed-in user can update likes/commentCount (social interactions).
+      allow update: if isSignedIn()
+        && (
+          // Author can update anything on their review
+          resource.data.userId == request.auth.uid
+          ||
+          // Non-authors can only update like/comment counts
+          onlyUpdates(['likes', 'commentCount', 'likedBy'])
+        );
 
       // Only the review author can delete their own review
       allow delete: if isSignedIn()
@@ -63,7 +97,10 @@ service cloud.firestore {
         allow read: if true;
 
         allow create: if isSignedIn()
-          && request.resource.data.userId == request.auth.uid;
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
 
         allow delete: if isSignedIn()
           && resource.data.userId == request.auth.uid;
@@ -85,6 +122,11 @@ service cloud.firestore {
         && resource.data.followerId == request.auth.uid;
 
       allow update: if false;
+    }
+
+    // --- Catch-all: deny everything else ---
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
