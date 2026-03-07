@@ -945,6 +945,20 @@ let mapInstance = null;
 let mapMarkers = [];
 let mapReady = false;
 let pendingPlaces = null;
+let allMapPlaces = null; // Cache ALL places for the map (fetched once)
+
+// Fetch ALL places from Firestore for map markers (no limit)
+async function fetchAllPlacesForMap() {
+  if (allMapPlaces) return allMapPlaces;
+  try {
+    const snap = await db.collection('places').get();
+    allMapPlaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return allMapPlaces;
+  } catch (err) {
+    console.error('Failed to fetch all places for map:', err);
+    return null;
+  }
+}
 
 // Neighborhood polygon coordinates [lng, lat] rings
 function buildHoodGeoJSON() {
@@ -995,6 +1009,10 @@ async function initMap(places) {
     }
   }
 
+  // Fetch ALL places for map markers (not just the grid's limited 30)
+  const allPlaces = await fetchAllPlacesForMap();
+  const mapPlaces = allPlaces || places; // fallback to grid places if fetch fails
+
   if (!mapInstance) {
     mapEl.innerHTML = ''; // clear any loading text
     mapInstance = new mapboxgl.Map({
@@ -1018,9 +1036,9 @@ async function initMap(places) {
   }
 
   if (mapReady) {
-    addMarkers(places);
+    addMarkers(mapPlaces);
   } else {
-    pendingPlaces = places;
+    pendingPlaces = mapPlaces;
   }
 }
 
@@ -1545,6 +1563,7 @@ async function submitPlace(e) {
 
     const docRef = await db.collection('places').add(placeData);
 
+    allMapPlaces = null; // Invalidate map cache so new place shows up
     closePlaceModal();
     showToast(`${name} added!`);
     if (currentUser) incrementChallengeProgress(currentUser.uid, 'weeklyNewSpots');
