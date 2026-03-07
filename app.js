@@ -191,6 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Handle ?place=xxx query params (from social share links — X strips hash fragments)
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedPlaceId = urlParams.get('place');
+  if (sharedPlaceId) {
+    window.history.replaceState(null, '', '/#/place/' + sharedPlaceId);
+  }
+
   window.addEventListener('hashchange', handleRoute);
   startTotyCountdown();
 });
@@ -2143,7 +2150,9 @@ function getShareText(review, place) {
 }
 
 function getShareUrl(placeId) {
-  return `https://www.chorizomejor.com/#/place/${placeId}`;
+  // Use query param so X/Twitter crawler sees a unique URL per place
+  // (hash fragments are stripped by crawlers, so #/place/... never reaches Twitterbot)
+  return `https://www.chorizomejor.com/?place=${placeId}`;
 }
 
 async function trackShare(userId) {
