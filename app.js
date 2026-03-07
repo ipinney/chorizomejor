@@ -2983,6 +2983,7 @@ async function fetchLiveRatings(place) {
 // Render star icons for ratings (CM / Google / Yelp)
 function renderStars(rating, platform) {
   const color = platform === 'cm' ? '#D84315' : platform === 'yelp' ? '#FF1A1A' : '#FBBC05';
+  rating = Number(rating) || 0; // handle NaN/undefined
   rating = Math.max(0, Math.min(5, rating)); // clamp to 0-5
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.3 ? 1 : 0;
