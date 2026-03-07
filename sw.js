@@ -3,16 +3,14 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v32';
+const CACHE_NAME = 'chorizo-mejor-v33';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/neighborhoods.js',
   '/app.js',
-  '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Ranchers&family=Inter:wght@400;500;600;700&display=swap',
-  'https://fonts.googleapis.com/icon?family=Material+Icons+Round'
+  '/manifest.json'
 ];
 
 // Install: cache static assets
@@ -46,12 +44,14 @@ self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Firebase/Firestore API calls - always go to network
+  // Skip external CDN/API calls - let browser handle directly
   if (url.hostname.includes('firebaseio.com') ||
       url.hostname.includes('googleapis.com') ||
+      url.hostname.includes('gstatic.com') ||
       url.hostname.includes('firestore.googleapis.com') ||
       url.hostname.includes('firebasestorage.googleapis.com') ||
-      url.hostname.includes('identitytoolkit.googleapis.com')) {
+      url.hostname.includes('identitytoolkit.googleapis.com') ||
+      url.hostname.includes('mapbox.com')) {
     return;
   }
 
