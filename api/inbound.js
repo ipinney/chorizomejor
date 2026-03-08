@@ -74,18 +74,37 @@ function extractName(fromStr) {
  */
 function getNextStatus(currentStatus) {
   switch (currentStatus) {
+    // Phase 1: Initial outreach — they replied!
     case 'contacted':
     case 'follow_up_1':
     case 'follow_up_2':
-      return 'responded';  // They replied to our outreach!
-    case 'questions_sent':
-      return 'info_received';  // They answered our questions!
+      return 'responded';
+    // Phase 2: Starter questions — they answered the basics
+    case 'starter_questions_sent':
+      return 'starter_answered';
+    // Phase 3: Deep dive — they answered the follow-ups
+    case 'deep_dive_sent':
+      return 'deep_dive_answered';
+    // Phase 4: Media request — they sent photos
+    case 'media_requested':
+      return 'media_received';
+    // Phase 5: Draft review — they replied (approval or changes)
+    case 'draft_sent':
+      return 'approved';
+    // Already in a "received" state — just store the new message
     case 'responded':
-      return 'responded';  // Already responded, just store the new message
+    case 'starter_answered':
+    case 'deep_dive_answered':
+    case 'media_received':
+    case 'approved':
+      return currentStatus;
+    // Legacy statuses (backward compat)
+    case 'questions_sent':
+      return 'starter_answered';
     case 'info_received':
-      return 'info_received';  // More info coming in
+      return 'deep_dive_answered';
     default:
-      return currentStatus;  // Don't change unknown statuses
+      return currentStatus;
   }
 }
 
