@@ -63,7 +63,8 @@ service cloud.firestore {
                          'avgSalsa', 'avgValue', 'waitYesCount', 'topTags',
                          'imageURL', 'websiteURL', 'yelpURL', 'googleMapsURL',
                          'orderURL', 'phone', 'photoURL', 'googleRating',
-                         'googleReviewCount', 'googlePhotoURL']);
+                         'googleReviewCount', 'googlePhotoURL',
+                         'lat', 'lng', 'address', 'neighborhood']);
 
       // No deleting places
       allow delete: if false;
