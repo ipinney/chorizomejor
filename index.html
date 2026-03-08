@@ -39,7 +39,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-  <link rel="stylesheet" href="style.css?v=43" />
+  <link rel="stylesheet" href="style.css?v=44" />
   <!-- Mapbox GL JS -->
   <script>window.__mb=['pk.eyJ1IjoiaXBpbm5leTIi','LCJhIjoiY203M3Q5YTYwMDJ5cDJycTh1MHJscHA1ZSJ9','.eg3CEbw2FI2WSUUc1N9CfA'];</script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
@@ -59,6 +59,9 @@
         <span class="logo-text">Chorizo Mejor</span>
       </div>
       <div id="header-actions">
+        <button class="btn-icon" onclick="navigate('philosophy')" title="Our Philosophy">
+          <span class="material-icons-round">info_outline</span>
+        </button>
         <button class="btn-icon" onclick="toggleSearch()" title="Search">
           <span class="material-icons-round">search</span>
         </button>
@@ -480,6 +483,11 @@
       <div id="story-detail" class="story-article"></div>
     </section>
 
+    <!-- ===== PHILOSOPHY ===== -->
+    <section id="view-philosophy" class="view hidden">
+      <div id="philosophy-content"></div>
+    </section>
+
   </main>
 
   <!-- ===================== ADD REVIEW MODAL ===================== -->
@@ -733,6 +741,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="neighborhoods.js"></script>
-  <script src="app.js?v=43"></script>
+  <script src="app.js?v=44"></script>
 </body>
 </html>

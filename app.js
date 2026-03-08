@@ -319,6 +319,10 @@ function handleRoute() {
       showView('view-story');
       if (id) loadStoryDetail(id);
       break;
+    case 'philosophy':
+      showView('view-philosophy');
+      loadPhilosophy();
+      break;
     case 'auth':
       showView('view-auth');
       break;
@@ -3522,4 +3526,143 @@ function renderStoryBody(md) {
   }).join('\n');
 
   return html;
+}
+
+// ===================== PHILOSOPHY =====================
+
+function loadPhilosophy() {
+  const container = document.getElementById('philosophy-content');
+  container.innerHTML = `
+    <div class="philosophy-page">
+
+      <div class="philosophy-hero">
+        <div class="philosophy-hero-icon">🌮</div>
+        <h1>Our Philosophy</h1>
+        <p class="philosophy-tagline">Family kitchens over franchise lines.</p>
+      </div>
+
+      <div class="philosophy-section">
+        <div class="philosophy-section-icon"><span class="material-icons-round">storefront</span></div>
+        <h2>Why No Chains</h2>
+        <p>
+          Chorizo Mejor exists to celebrate the family-owned taquerias, neighborhood trucks,
+          and abuela-recipe spots that give Houston its soul. We don't list national chains
+          or large franchise operations — not because their food is bad, but because they
+          don't need our help being found.
+        </p>
+        <p>
+          The places on this app are the ones you discover through word of mouth, the ones
+          with hand-painted signs and a line out the door at 7am. They're run by people who
+          wake up before dawn to press tortillas and slow-cook barbacoa. That's what we're here to honor.
+        </p>
+        <div class="philosophy-highlight">
+          <span class="material-icons-round">favorite</span>
+          <span>Every spot on Chorizo Mejor is independently owned and operated.</span>
+        </div>
+      </div>
+
+      <div class="philosophy-section">
+        <div class="philosophy-section-icon"><span class="material-icons-round">rate_review</span></div>
+        <h2>How We Rate</h2>
+        <p>
+          Every review on Chorizo Mejor breaks down the taco experience into four categories.
+          Your overall score is the average of these four — no bias, no weighting, just
+          honest math. A place can't hide weak salsa behind a great tortilla.
+        </p>
+      </div>
+
+      <div class="philosophy-ratings-grid">
+
+        <div class="philosophy-rating-card">
+          <div class="philosophy-rating-emoji">🫓</div>
+          <h3>Tortilla</h3>
+          <div class="philosophy-rating-scale">1–5</div>
+          <p>
+            The foundation. Is it fresh — made in-house, or at least that day? Does it have
+            that slightly charred, pillowy quality? A great tortilla should hold everything
+            together without falling apart, and taste good enough to eat on its own.
+            Flour or corn — we rate both, no favoritism.
+          </p>
+        </div>
+
+        <div class="philosophy-rating-card">
+          <div class="philosophy-rating-emoji">🥩</div>
+          <h3>Protein</h3>
+          <div class="philosophy-rating-scale">1–5</div>
+          <p>
+            The star of the show. Is the chorizo seasoned with care, the barbacoa
+            slow-cooked until it melts, the egg scramble perfectly fluffy? We're looking
+            for flavor, texture, and portion. A taco shouldn't leave you guessing where
+            the meat went.
+          </p>
+        </div>
+
+        <div class="philosophy-rating-card">
+          <div class="philosophy-rating-emoji">🫙</div>
+          <h3>Salsa</h3>
+          <div class="philosophy-rating-scale">1–5</div>
+          <p>
+            The personality. A great salsa wakes up the whole taco. We're looking for
+            freshness, heat balance, and variety. Does the spot offer verde and roja?
+            Is it clearly made in-house, or poured from a jug? Bonus points for
+            salsas that make you reach for another chip.
+          </p>
+        </div>
+
+        <div class="philosophy-rating-card">
+          <div class="philosophy-rating-emoji">💰</div>
+          <h3>Value</h3>
+          <div class="philosophy-rating-scale">1–5</div>
+          <p>
+            The reality check. A $2 taco that's phenomenal gets a 5. A $6 taco
+            that's just okay gets a 2. We're not looking for cheap — we're looking
+            for worth it. Size, quality, and price all factor in. Houston's best
+            tacos don't have to break the bank.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="philosophy-section">
+        <div class="philosophy-section-icon"><span class="material-icons-round">calculate</span></div>
+        <h2>The Composite Score</h2>
+        <p>
+          Every place's overall rating is calculated as the simple average of all four
+          categories across all reviews. No editorial weighting, no sponsored boosts —
+          just community math.
+        </p>
+        <div class="philosophy-formula">
+          <code>Overall = ( Tortilla + Protein + Salsa + Value ) / 4</code>
+        </div>
+        <p>
+          This means every category matters equally. A spot with incredible tortillas
+          but overpriced tacos will see that reflected honestly. We think that's fair —
+          and that's the point.
+        </p>
+      </div>
+
+      <div class="philosophy-section">
+        <div class="philosophy-section-icon"><span class="material-icons-round">groups</span></div>
+        <h2>Community First</h2>
+        <p>
+          Chorizo Mejor is built by taco lovers, for taco lovers. Every review comes from
+          a real person who walked in, ordered, and ate. We don't accept paid placements
+          or sponsored listings. If a place is on here, it's because someone in the
+          community thought it was worth sharing.
+        </p>
+        <p>
+          Found a family spot we're missing? <strong>Add it.</strong> Disagree with a rating?
+          <strong>Leave your own review.</strong> That's how this works.
+        </p>
+      </div>
+
+      <div class="philosophy-footer">
+        <a href="#/explore" class="btn-primary philosophy-cta">
+          <span class="material-icons-round">explore</span>
+          Explore Taco Spots
+        </a>
+      </div>
+
+    </div>
+  `;
 }

@@ -2905,3 +2905,174 @@ a:hover { text-decoration: underline; }
   transition: color 0.2s;
 }
 .share-btn-sm:hover { color: #D84315; }
+
+/* ===================== PHILOSOPHY PAGE ===================== */
+
+.philosophy-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+}
+
+.philosophy-hero {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+
+.philosophy-hero-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.philosophy-hero h1 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.philosophy-tagline {
+  font-size: 17px;
+  color: #888;
+  font-style: italic;
+  margin: 0;
+}
+
+.philosophy-section {
+  margin-bottom: 28px;
+}
+
+.philosophy-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #FFF3E0;
+  color: #D84315;
+  margin-bottom: 8px;
+}
+
+.philosophy-section-icon .material-icons-round {
+  font-size: 22px;
+}
+
+.philosophy-section h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+
+.philosophy-section p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #444;
+  margin: 0 0 12px;
+}
+
+.philosophy-highlight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFF3E0;
+  border-left: 4px solid #D84315;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-top: 12px;
+}
+
+.philosophy-highlight .material-icons-round {
+  color: #D84315;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.philosophy-ratings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 480px) {
+  .philosophy-ratings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.philosophy-rating-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #f0e8d8;
+}
+
+.philosophy-rating-emoji {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.philosophy-rating-card h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-text);
+  margin: 0 0 4px;
+}
+
+.philosophy-rating-scale {
+  display: inline-block;
+  background: #D84315;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.philosophy-rating-card p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
+}
+
+.philosophy-formula {
+  background: #2D2D2D;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 14px 0;
+  text-align: center;
+}
+
+.philosophy-formula code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 14px;
+  color: #FFC107;
+  letter-spacing: 0.5px;
+}
+
+.philosophy-footer {
+  text-align: center;
+  padding: 16px 0 32px;
+}
+
+.philosophy-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 16px;
+  border-radius: 12px;
+  text-decoration: none;
+}
+
+.philosophy-cta .material-icons-round {
+  font-size: 20px;
+}
