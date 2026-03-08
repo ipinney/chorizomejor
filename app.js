@@ -1316,8 +1316,11 @@ async function loadPlaceDetail(placeId) {
     // Action buttons
     const linksEl = document.getElementById('place-links');
     const buttons = [];
-    // Directions — always show if lat/lng
-    if (place.lat && place.lng) {
+    // Directions — use name+address for accurate Google Maps navigation
+    if (place.address) {
+      const destQuery = encodeURIComponent(place.name + ', ' + place.address);
+      buttons.push(`<a class="place-link-btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${destQuery}" target="_blank" rel="noopener"><span class="link-icon">📍</span> Directions</a>`);
+    } else if (place.lat && place.lng) {
       buttons.push(`<a class="place-link-btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}" target="_blank" rel="noopener"><span class="link-icon">📍</span> Directions</a>`);
     }
     // Order Online
