@@ -33,7 +33,12 @@ service cloud.firestore {
       allow update: if isOwner(userId)
         && onlyUpdates(['displayName', 'photoURL', 'handle', 'reviewCount',
                          'followerCount', 'followingCount', 'followers', 'following',
-                         'badges', 'tier']);
+                         'badges', 'tier', 'xp', 'photoReviewCount',
+                         'streakCurrent', 'streakLongest', 'streakLastDate',
+                         'streakFreezeAvailable', 'streakFreezeUsedAt',
+                         'favoritePlaces', 'lastLoginDate', 'lastLoginBonus',
+                         'onboardingStep', 'onboardingComplete',
+                         'weeklyChallenge', 'weeklyChallengeProgress']);
 
       // No deleting user profiles
       allow delete: if false;
@@ -70,12 +75,14 @@ service cloud.firestore {
       allow read: if true;
 
       // Signed-in users can create reviews with their own userId
+      // Ratings are stored in a nested 'ratings' map with 1-5 scale
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.placeId is string
-        && request.resource.data.overall is number
-        && request.resource.data.overall >= 1
-        && request.resource.data.overall <= 10;
+        && request.resource.data.ratings is map
+        && request.resource.data.ratings.overall is number
+        && request.resource.data.ratings.overall >= 1
+        && request.resource.data.ratings.overall <= 5;
 
       // Author can update their own review text/ratings.
       // Any signed-in user can update likes/commentCount (social interactions).

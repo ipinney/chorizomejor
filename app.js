@@ -1679,12 +1679,33 @@ async function submitReview(e) {
   try {
     let photoURL = null;
 
-    // Upload photo if provided
+    // Convert photo to data URI if provided (Firebase Storage requires Blaze plan)
     if (photoFile) {
-      const fileName = `reviews/${currentUser.uid}/${Date.now()}_${photoFile.name}`;
-      const ref = storage.ref(fileName);
-      await ref.put(photoFile);
-      photoURL = await ref.getDownloadURL();
+      photoURL = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Resize to keep Firestore doc size reasonable (~10-15KB)
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxDim = 600;
+            let w = img.width, h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(photoFile);
+      });
     }
 
     // Get place name and data
