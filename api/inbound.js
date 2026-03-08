@@ -70,6 +70,49 @@ function extractName(fromStr) {
 }
 
 /**
+ * Classify a reply to give the automation hints about how to respond.
+ * This is a lightweight heuristic — the automation does the real thinking.
+ */
+function classifyReply(textBody, senderEmail, contactEmail) {
+  const text = (textBody || '').toLowerCase();
+  const hints = {};
+
+  // Language detection (basic Spanish check)
+  const spanishWords = ['hola', 'gracias', 'buenas', 'buenos', 'quiero', 'nosotros', 'estamos', 'puede', 'favor', 'interesado', 'tienda', 'correo', 'también'];
+  const spanishCount = spanishWords.filter(w => text.includes(w)).length;
+  if (spanishCount >= 2) {
+    hints.language = 'es';
+  } else {
+    hints.language = 'en';
+  }
+
+  // Is this a different person than who we emailed?
+  hints.isNewSender = senderEmail !== (contactEmail || '').toLowerCase();
+
+  // Gatekeeper signals
+  const gatekeeperPhrases = ['let me check', 'i\'ll ask', 'talk to the owner', 'pass this along', 'forward this', 'i\'ll let them know', 'send this to', 'i will share', 'let me forward'];
+  hints.gatekeeperSignal = gatekeeperPhrases.some(p => text.includes(p));
+
+  // Redirect signals (someone else should be contacted)
+  const redirectPhrases = ['you should contact', 'reach out to', 'email them at', 'the owner is', 'talk to', 'better to email', 'try reaching', 'person to talk to'];
+  hints.redirectSignal = redirectPhrases.some(p => text.includes(p));
+
+  // Skeptic signals
+  const skepticPhrases = ['how much', 'what\'s the cost', 'is this free', 'what\'s the catch', 'no thanks', 'not interested', 'sounds like', 'is this legit', 'scam', 'spam', 'too good'];
+  hints.skepticSignal = skepticPhrases.some(p => text.includes(p));
+
+  // Positive signals
+  const positivePhrases = ['sounds great', 'i\'d love', 'we\'d love', 'interested', 'yes', 'sure', 'absolutely', 'let\'s do it', 'count me in', 'love to', 'sounds good', 'send me', 'go ahead'];
+  hints.positiveSignal = positivePhrases.some(p => text.includes(p));
+
+  // Decline signals
+  const declinePhrases = ['not interested', 'no thank', 'pass on this', 'don\'t want', 'no thanks', 'unsubscribe', 'stop emailing', 'remove me'];
+  hints.declineSignal = declinePhrases.some(p => text.includes(p));
+
+  return hints;
+}
+
+/**
  * Determine the next pipeline status based on current status
  */
 function getNextStatus(currentStatus) {
@@ -218,6 +261,9 @@ module.exports = async function handler(req, res) {
     const newStatus = getNextStatus(currentStatus);
     const shopName = outreachData.shopName || 'Unknown Shop';
 
+    // Classify the reply to help the automation respond intelligently
+    const replyHints = classifyReply(textBody, senderEmail, outreachData.contactEmail);
+
     // Build the reply record
     const reply = {
       from: senderEmail,
@@ -226,6 +272,7 @@ module.exports = async function handler(req, res) {
       textBody: (textBody || '').slice(0, 10000),  // Cap at 10K
       hasAttachments: numAttachments > 0,
       attachmentCount: numAttachments,
+      hints: replyHints,
       receivedAt: require('firebase-admin').firestore.FieldValue.serverTimestamp()
     };
 
