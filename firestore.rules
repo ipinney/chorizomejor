@@ -151,6 +151,12 @@ service cloud.firestore {
         && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
     }
 
+    // --- Inbound Emails (admin only, written by serverless function) ---
+    match /inbound_emails/{emailId} {
+      allow read, write: if isSignedIn()
+        && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
+    }
+
     // --- Catch-all: deny everything else ---
     match /{document=**} {
       allow read, write: if false;
