@@ -137,10 +137,32 @@ module.exports = async function handler(req, res) {
     // Look up sender in outreach collection
     const firestore = await getFirestore();
     const outreachRef = firestore.collection('outreach');
-    const snapshot = await outreachRef
+
+    // First try: match by sender email (direct reply from the contact)
+    let snapshot = await outreachRef
       .where('contactEmail', '==', senderEmail)
       .limit(1)
       .get();
+
+    // Second try: match by subject line (handles CCs, forwards, different person replying)
+    // Our outreach subjects contain the shop name, e.g. "Love what you're doing at Laredo Taqueria"
+    if (snapshot.empty && subject) {
+      console.log(`Inbound: No email match for ${senderEmail}, trying subject-line match...`);
+      const allOutreach = await outreachRef.get();
+      for (const doc of allOutreach.docs) {
+        const data = doc.data();
+        const shopName = (data.shopName || '').toLowerCase();
+        const subjectLower = (subject || '').toLowerCase();
+        // Match if the subject contains the shop name (works for Re:, Fwd:, etc.)
+        if (shopName && shopName.length > 3 && subjectLower.includes(shopName)) {
+          snapshot = { empty: false, docs: [doc] };
+          console.log(`Inbound: Subject-line match! "${subject}" matched to ${data.shopName}`);
+          break;
+        }
+      }
+      // If subject match found, snapshot is now a mock object — normalize it
+      if (snapshot.empty === undefined) snapshot = { empty: true, docs: [] };
+    }
 
     if (snapshot.empty) {
       // Unknown sender — could be spam, a subscriber question, etc.
