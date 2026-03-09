@@ -1579,6 +1579,8 @@ async function submitPlace(e) {
       waitYesCount: 0,
       topTags: [],
       addedBy: currentUser.uid,
+      addedByName: currentUser.displayName || 'Anonymous',
+      status: 'pending',  // pending | verified | rejected
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (finalLat && finalLng) {
@@ -1588,14 +1590,40 @@ async function submitPlace(e) {
 
     const docRef = await db.collection('places').add(placeData);
 
+    // Try to enrich with Google Places data in the background
+    if (finalLat && finalLng) {
+      enrichPlaceWithGoogle(docRef.id, name, finalLat, finalLng);
+    }
+
     allMapPlaces = null; // Invalidate map cache so new place shows up
     closePlaceModal();
-    showToast(`${name} added!`);
+    showToast(`${name} added! 🎉`);
     if (currentUser) incrementChallengeProgress(currentUser.uid, 'weeklyNewSpots');
     navigate('place', docRef.id);
   } catch (err) {
     showToast('Could not add place');
     console.error(err);
+  }
+}
+
+// Auto-enrich new place with Google Places data (ratings, URL)
+async function enrichPlaceWithGoogle(placeId, placeName, lat, lng) {
+  try {
+    const res = await fetch(`/api/ratings?name=${encodeURIComponent(placeName)}&lat=${lat}&lng=${lng}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.google && data.google.rating) {
+      const updates = {};
+      if (data.google.rating) updates.googleRating = data.google.rating;
+      if (data.google.reviewCount) updates.googleReviewCount = data.google.reviewCount;
+      if (data.google.url) updates.googleMapsURL = data.google.url;
+      if (Object.keys(updates).length > 0) {
+        updates.status = 'verified';  // Google found it — it's real
+        await db.collection('places').doc(placeId).update(updates);
+      }
+    }
+  } catch (err) {
+    console.log('Google enrichment skipped:', err.message);
   }
 }
 
@@ -1606,9 +1634,43 @@ function openAddFlow() {
   if (currentPlaceId && currentView === 'place') {
     openReviewModal();
   } else {
-    // If not on a place page, go to explore to pick a place
-    showToast('Pick a taco spot first!');
-    navigate('explore');
+    // Show options: add a review (pick a place) or add a new spot
+    showFabMenu();
+  }
+}
+
+function showFabMenu() {
+  // Close existing menu if open
+  const existing = document.getElementById('fab-menu');
+  if (existing) { existing.remove(); return; }
+
+  const menu = document.createElement('div');
+  menu.id = 'fab-menu';
+  menu.className = 'fab-menu';
+  menu.innerHTML = `
+    <button class="fab-menu-item" onclick="closeFabMenu(); navigate('explore'); showToast('Pick a spot to review!')">
+      <span class="material-icons-round">rate_review</span> Write a Review
+    </button>
+    <button class="fab-menu-item" onclick="closeFabMenu(); openPlaceModal()">
+      <span class="material-icons-round">add_business</span> Add a Taco Spot
+    </button>
+  `;
+  document.body.appendChild(menu);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeFabMenuOutside, { once: true });
+  }, 10);
+}
+
+function closeFabMenu() {
+  const menu = document.getElementById('fab-menu');
+  if (menu) menu.remove();
+}
+
+function closeFabMenuOutside(e) {
+  if (!e.target.closest('#fab-menu') && !e.target.closest('.fab')) {
+    closeFabMenu();
   }
 }
 
@@ -3654,6 +3716,20 @@ function loadPhilosophy() {
           Found a family spot we're missing? <strong>Add it.</strong> Disagree with a rating?
           <strong>Leave your own review.</strong> That's how this works.
         </p>
+      </div>
+
+      <div class="philosophy-section add-spot-cta-section">
+        <div class="philosophy-section-icon"><span class="material-icons-round">add_business</span></div>
+        <h2>Don't See Your Spot?</h2>
+        <p>
+          Know a taco spot that's missing from the map? Sign in and add it — name, address,
+          and type is all we need. We'll auto-detect the neighborhood and pull in the Google
+          rating to verify it. Your submission goes live immediately so others can start reviewing.
+        </p>
+        <button class="btn-primary philosophy-cta" onclick="openPlaceModal()">
+          <span class="material-icons-round">add_business</span>
+          Add a Taco Spot
+        </button>
       </div>
 
       <div class="philosophy-footer">

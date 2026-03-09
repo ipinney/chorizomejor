@@ -57,14 +57,15 @@ service cloud.firestore {
         && request.resource.data.address is string;
 
       // Signed-in users can update aggregate fields only
-      // (review counts, averages, tags, wait counts, and external link fields)
+      // (review counts, averages, tags, wait counts, external links, and status)
       allow update: if isSignedIn()
         && onlyUpdates(['reviewCount', 'avgOverall', 'avgTortilla', 'avgProtein',
                          'avgSalsa', 'avgValue', 'waitYesCount', 'topTags',
                          'imageURL', 'websiteURL', 'yelpURL', 'googleMapsURL',
                          'orderURL', 'phone', 'photoURL', 'googleRating',
                          'googleReviewCount', 'googlePhotoURL',
-                         'lat', 'lng', 'address', 'neighborhood']);
+                         'lat', 'lng', 'address', 'neighborhood',
+                         'status', 'addedByName']);
 
       // No deleting places
       allow delete: if false;
