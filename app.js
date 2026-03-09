@@ -2072,10 +2072,10 @@ async function loadProfile(userId) {
       document.getElementById('stat-followers').textContent = user.followers || 0;
       document.getElementById('stat-following').textContent = user.following || 0;
 
-      // Show Google profile photo if available
+      // Show Google profile photo if available (with fallback on error)
       const avatarEl = document.getElementById('profile-avatar');
       if (user.photoURL) {
-        avatarEl.innerHTML = `<img src="${escapeHtml(user.photoURL)}" alt="Profile" />`;
+        avatarEl.innerHTML = `<img src="${escapeHtml(user.photoURL)}" alt="" onerror="this.parentElement.innerHTML='🌮';this.parentElement.classList.remove('has-photo');" />`;
         avatarEl.classList.add('has-photo');
       } else {
         avatarEl.innerHTML = '🌮';

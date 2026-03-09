@@ -3,7 +3,7 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v44';
+const CACHE_NAME = 'chorizo-mejor-v45';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -51,6 +51,8 @@ self.addEventListener('fetch', event => {
       url.hostname.includes('firestore.googleapis.com') ||
       url.hostname.includes('firebasestorage.googleapis.com') ||
       url.hostname.includes('identitytoolkit.googleapis.com') ||
+      url.hostname.includes('googleusercontent.com') ||
+      url.hostname.includes('dicebear.com') ||
       url.hostname.includes('mapbox.com')) {
     return;
   }
@@ -81,13 +83,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For images (review photos): cache with network fallback
+  // For images (review photos): cache with network fallback (only cache 200s)
   if (event.request.destination === 'image') {
     event.respondWith(
       caches.match(event.request).then(cached => {
         const fetchPromise = fetch(event.request).then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
           return response;
         }).catch(() => cached);
 
