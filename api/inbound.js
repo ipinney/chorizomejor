@@ -90,23 +90,23 @@ function classifyReply(textBody, senderEmail, contactEmail) {
   hints.isNewSender = senderEmail !== (contactEmail || '').toLowerCase();
 
   // Gatekeeper signals
-  const gatekeeperPhrases = ['let me check', 'i\'ll ask', 'talk to the owner', 'pass this along', 'forward this', 'i\'ll let them know', 'send this to', 'i will share', 'let me forward'];
+  const gatekeeperPhrases = ['let me check', 'i\'ll ask', 'talk to the owner', 'pass this along', 'forward this', 'i\'ll let them know', 'send this to', 'i will share', 'let me forward', 'my boss', 'the owner', 'connect you with', 'i\'m not the owner', 'i work here but', 'let me ask the', 'i\'ll pass it', 'check with my', 'run it by'];
   hints.gatekeeperSignal = gatekeeperPhrases.some(p => text.includes(p));
 
   // Redirect signals (someone else should be contacted)
-  const redirectPhrases = ['you should contact', 'reach out to', 'email them at', 'the owner is', 'talk to', 'better to email', 'try reaching', 'person to talk to'];
+  const redirectPhrases = ['you should contact', 'reach out to', 'email them at', 'the owner is', 'talk to', 'better to email', 'try reaching', 'person to talk to', 'their email is', 'you can reach them', 'here\'s their', 'contact them at', 'his email', 'her email', 'their number'];
   hints.redirectSignal = redirectPhrases.some(p => text.includes(p));
 
   // Skeptic signals
-  const skepticPhrases = ['how much', 'what\'s the cost', 'is this free', 'what\'s the catch', 'no thanks', 'not interested', 'sounds like', 'is this legit', 'scam', 'spam', 'too good'];
+  const skepticPhrases = ['how much', 'what\'s the cost', 'is this free', 'what\'s the catch', 'no thanks', 'not interested', 'sounds like', 'is this legit', 'scam', 'spam', 'too good', 'is there a cost', 'is there a fee', 'what do i need to pay', 'is this a promotion', 'is this an ad', 'what do you get out of', 'why is it free', 'what\'s in it for you', 'is this marketing'];
   hints.skepticSignal = skepticPhrases.some(p => text.includes(p));
 
   // Positive signals
-  const positivePhrases = ['sounds great', 'i\'d love', 'we\'d love', 'interested', 'yes', 'sure', 'absolutely', 'let\'s do it', 'count me in', 'love to', 'sounds good', 'send me', 'go ahead'];
+  const positivePhrases = ['sounds great', 'i\'d love', 'we\'d love', 'interested', 'yes', 'sure', 'absolutely', 'let\'s do it', 'count me in', 'love to', 'sounds good', 'send me', 'go ahead', 'sounds interesting', 'tell me more', 'i\'m down', 'yeah', 'cool', 'sweet', 'let\'s go', 'sign me up', 'we\'re in', 'down for it', 'i\'m interested', 'we\'re interested', 'send them over', 'send it over', 'go for it'];
   hints.positiveSignal = positivePhrases.some(p => text.includes(p));
 
   // Decline signals
-  const declinePhrases = ['not interested', 'no thank', 'pass on this', 'don\'t want', 'no thanks', 'unsubscribe', 'stop emailing', 'remove me'];
+  const declinePhrases = ['not interested', 'no thank', 'pass on this', 'don\'t want', 'no thanks', 'unsubscribe', 'stop emailing', 'remove me', 'not for us', 'we\'ll pass', 'leave us alone', 'don\'t contact', 'not right now', 'maybe later', 'bad time'];
   hints.declineSignal = declinePhrases.some(p => text.includes(p));
 
   return hints;
