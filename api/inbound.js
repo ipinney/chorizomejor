@@ -30,7 +30,7 @@
 
 // Disable Vercel body parser — SendGrid sends multipart/form-data
 // We need the raw body to parse it ourselves
-const formidable = require('formidable');
+const { formidable } = require('formidable');
 
 // Lazy-init Firebase Admin
 let adminDb = null;
