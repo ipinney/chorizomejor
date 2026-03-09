@@ -574,7 +574,7 @@ function createReviewCard(reviewId, review) {
 
   card.innerHTML = `
     <div class="card-header">
-      <div class="card-avatar">🌮</div>
+      <div class="card-avatar">${review.userPhoto && !review.userPhoto.includes('dicebear.com') ? `<img src="${escapeHtml(review.userPhoto)}" alt="" onerror="this.parentElement.textContent='🌮'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '🌮'}</div>
       <div class="card-user-info">
         <div class="card-username" onclick="navigate('profile','${escapeHtml(review.userId)}')">${escapeHtml(review.userName || 'Anonymous')} <span class="card-tier-badge">${review.userTier || '🌱'}</span></div>
         <div class="card-meta">${timeAgo}</div>
