@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/story/:slug", "destination": "/api/og?slug=:slug" },
+    { "source": "/place/:id", "destination": "/api/og?type=place&id=:id" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

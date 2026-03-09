@@ -3388,13 +3388,13 @@ async function loadStoryDetail(slug) {
         <div class="story-share-bar">
           <span class="story-share-label">Share this story</span>
           <div class="story-share-buttons">
-            <button class="share-btn share-btn-x" onclick="shareStory('x', '${s.title}', '${doc.id}')" title="Share on X">
+            <button class="share-btn share-btn-x" onclick="shareStory('x', '${s.title}', '${s.slug || doc.id}')" title="Share on X">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </button>
-            <button class="share-btn share-btn-fb" onclick="shareStory('facebook', '${s.title}', '${doc.id}')" title="Share on Facebook">
+            <button class="share-btn share-btn-fb" onclick="shareStory('facebook', '${s.title}', '${s.slug || doc.id}')" title="Share on Facebook">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             </button>
-            <button class="share-btn share-btn-copy" onclick="shareStory('copy', '${s.title}', '${doc.id}')" title="Copy link">
+            <button class="share-btn share-btn-copy" onclick="shareStory('copy', '${s.title}', '${s.slug || doc.id}')" title="Copy link">
               <span class="material-icons-round" style="font-size:18px;">link</span>
             </button>
           </div>
@@ -3459,8 +3459,8 @@ async function requestStoryRevisions(storyId) {
 
 // ===================== STORY SHARING =====================
 
-function shareStory(platform, title, storyId) {
-  const url = `https://chorizomejor.com/?story=${storyId}`;
+function shareStory(platform, title, storySlug) {
+  const url = `https://www.chorizomejor.com/story/${storySlug}`;
   const text = `${title} — Beto's Table on Chorizo Mejor`;
 
   switch (platform) {
