@@ -82,7 +82,9 @@ async function fetchStoryBySlug(slug) {
     excerpt: fsVal(fields.excerpt),
     author: fsVal(fields.author) || 'Beto Garza',
     column: fsVal(fields.column) || "Beto's Table",
-    imageURL: fsVal(fields.imageURL) || null
+    imageURL: fsVal(fields.imageURL) || null,
+    heroImage: fsVal(fields.heroImage) || null,
+    placeId: fsVal(fields.placeId) || null
   };
 }
 
@@ -99,7 +101,8 @@ async function fetchPlace(placeId) {
     name: fsVal(fields.name),
     address: fsVal(fields.address),
     neighborhood: fsVal(fields.neighborhood),
-    imageURL: fsVal(fields.imageURL) || null
+    imageURL: fsVal(fields.imageURL) || null,
+    googlePhotoURL: fsVal(fields.googlePhotoURL) || null
   };
 }
 
@@ -168,7 +171,22 @@ export default async function handler(req, res) {
         return res.setHeader('Content-Type', 'text/html').status(200).send(html);
       }
 
-      const ogImage = story.imageURL || BETO_IMAGE;
+      // Image priority: story imageURL → heroImage → linked place's Google photo → Beto's face
+      let ogImage = story.imageURL || story.heroImage || null;
+
+      if (!ogImage && story.placeId) {
+        try {
+          const place = await fetchPlace(story.placeId);
+          if (place) {
+            ogImage = place.imageURL || place.googlePhotoURL || null;
+          }
+        } catch (e) {
+          // Silently fall through to Beto default
+        }
+      }
+
+      ogImage = ogImage || BETO_IMAGE;
+
       const html = buildOgHtml({
         title: `${story.title} | ${story.column}`,
         description: story.excerpt || `A new ${story.column} article by ${story.author} on Chorizo Mejor.`,
@@ -201,7 +219,7 @@ export default async function handler(req, res) {
       const html = buildOgHtml({
         title: `${place.name} | Chorizo Mejor`,
         description: `${place.name} — ${place.address}. Rate and review breakfast tacos on Chorizo Mejor.`,
-        image: place.imageURL || DEFAULT_OG_IMAGE,
+        image: place.imageURL || place.googlePhotoURL || DEFAULT_OG_IMAGE,
         url: `${SITE_URL}/#/place/${id}`,
         type: 'restaurant'
       });
