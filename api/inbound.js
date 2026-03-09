@@ -89,13 +89,32 @@ function classifyReply(textBody, senderEmail, contactEmail) {
   // Is this a different person than who we emailed?
   hints.isNewSender = senderEmail !== (contactEmail || '').toLowerCase();
 
-  // Gatekeeper signals
-  const gatekeeperPhrases = ['let me check', 'i\'ll ask', 'talk to the owner', 'pass this along', 'forward this', 'i\'ll let them know', 'send this to', 'i will share', 'let me forward', 'my boss', 'the owner', 'connect you with', 'i\'m not the owner', 'i work here but', 'let me ask the', 'i\'ll pass it', 'check with my', 'run it by'];
-  hints.gatekeeperSignal = gatekeeperPhrases.some(p => text.includes(p));
+  // Owner self-identification — MUST be checked before gatekeeper to cancel false positives
+  const ownerSelfIdPhrases = ['i\'m the owner', 'i am the owner', 'i own', 'this is the owner', 'i\'m the one who owns', 'i own the', 'i\'m the proprietor', 'my restaurant', 'my shop', 'my taqueria', 'my place', 'it\'s my place', 'it\'s my shop', 'it\'s my restaurant', 'soy el dueño', 'soy la dueña', 'soy el propietario', 'soy dueño'];
+  hints.ownerSelfId = ownerSelfIdPhrases.some(p => text.includes(p));
+
+  // Gatekeeper signals — cancelled if ownerSelfId is true
+  const gatekeeperPhrases = ['let me check', 'i\'ll ask', 'talk to the owner', 'pass this along', 'forward this', 'i\'ll let them know', 'send this to', 'i will share', 'let me forward', 'my boss', 'connect you with', 'i\'m not the owner', 'i work here but', 'let me ask the', 'i\'ll pass it', 'check with my', 'run it by'];
+  // NOTE: "the owner" was removed as a standalone phrase — it triggered false positives
+  // when someone said "I'm the owner". Gatekeeper detection now relies on more specific
+  // phrases like "talk to the owner", "i'm not the owner", etc.
+  hints.gatekeeperSignal = !hints.ownerSelfId && gatekeeperPhrases.some(p => text.includes(p));
 
   // Redirect signals (someone else should be contacted)
   const redirectPhrases = ['you should contact', 'reach out to', 'email them at', 'the owner is', 'talk to', 'better to email', 'try reaching', 'person to talk to', 'their email is', 'you can reach them', 'here\'s their', 'contact them at', 'his email', 'her email', 'their number'];
   hints.redirectSignal = redirectPhrases.some(p => text.includes(p));
+
+  // Auto-extract redirected email addresses from the reply body
+  // When a gatekeeper or redirect says "the owner is Carlos at owner@shop.com"
+  hints.extractedEmails = [];
+  if (hints.redirectSignal || hints.gatekeeperSignal) {
+    // Match email addresses in the body that aren't the sender or beto
+    const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+    const foundEmails = (textBody || '').match(emailRegex) || [];
+    hints.extractedEmails = foundEmails
+      .map(e => e.toLowerCase().trim())
+      .filter(e => e !== senderEmail && e !== 'beto@chorizomejor.com' && e !== (contactEmail || '').toLowerCase());
+  }
 
   // Skeptic signals
   const skepticPhrases = ['how much', 'what\'s the cost', 'is this free', 'what\'s the catch', 'no thanks', 'not interested', 'sounds like', 'is this legit', 'scam', 'spam', 'too good', 'is there a cost', 'is there a fee', 'what do i need to pay', 'is this a promotion', 'is this an ad', 'what do you get out of', 'why is it free', 'what\'s in it for you', 'is this marketing'];
@@ -211,31 +230,126 @@ module.exports = async function handler(req, res) {
     const firestore = await getFirestore();
     const outreachRef = firestore.collection('outreach');
 
-    // First try: match by sender email (direct reply from the contact)
-    let snapshot = await outreachRef
-      .where('contactEmail', '==', senderEmail)
-      .limit(1)
-      .get();
+    // MATCHING STRATEGY (ordered by confidence):
+    // 1. Thread match — References header contains one of our Message-IDs (highest confidence)
+    // 2. Email match — sender matches contactEmail or any email in contacts array
+    //    If multiple records match, pick the most recently contacted one
+    // 3. Subject match — subject line contains a shop name from outreach records
+    //    (handles CCs, forwards, owner replying from a different email)
 
-    // Second try: match by subject line (handles CCs, forwards, different person replying)
-    // Our outreach subjects contain the shop name, e.g. "Love what you're doing at Laredo Taqueria"
-    if (snapshot.empty && subject) {
+    let matchedDoc = null;
+    let matchMethod = null;
+
+    // --- Strategy 1: Thread match via References header ---
+    if (!matchedDoc && inboundReferences) {
+      console.log(`Inbound: Trying thread match via References header...`);
+      const allOutreach = await outreachRef.get();
+      for (const doc of allOutreach.docs) {
+        const data = doc.data();
+        // Check if any of our sent Message-IDs appear in the References header
+        const threadId = data.threadMessageId || '';
+        const lastSentId = data.lastSentMessageId || '';
+        if (threadId && inboundReferences.includes(threadId)) {
+          matchedDoc = doc;
+          matchMethod = 'thread-references';
+          console.log(`Inbound: Thread match! References contains threadMessageId for ${data.shopName}`);
+          break;
+        }
+        if (lastSentId && inboundReferences.includes(lastSentId)) {
+          matchedDoc = doc;
+          matchMethod = 'thread-lastSent';
+          console.log(`Inbound: Thread match! References contains lastSentMessageId for ${data.shopName}`);
+          break;
+        }
+      }
+    }
+
+    // --- Strategy 2: Email match (contactEmail or contacts array) ---
+    if (!matchedDoc) {
+      // Query all records matching this sender email as contactEmail
+      const emailSnapshot = await outreachRef
+        .where('contactEmail', '==', senderEmail)
+        .get();
+
+      if (!emailSnapshot.empty) {
+        if (emailSnapshot.docs.length === 1) {
+          // Single match — easy case
+          matchedDoc = emailSnapshot.docs[0];
+          matchMethod = 'email-contactEmail';
+        } else {
+          // Multiple records share this contactEmail — disambiguate
+          console.log(`Inbound: ${emailSnapshot.docs.length} records match ${senderEmail}, disambiguating...`);
+
+          // First, try subject line to narrow it down
+          if (subject) {
+            const subjectLower = (subject || '').toLowerCase();
+            for (const doc of emailSnapshot.docs) {
+              const shopName = (doc.data().shopName || '').toLowerCase();
+              if (shopName && shopName.length > 3 && subjectLower.includes(shopName)) {
+                matchedDoc = doc;
+                matchMethod = 'email+subject';
+                console.log(`Inbound: Disambiguated by subject — matched to ${doc.data().shopName}`);
+                break;
+              }
+            }
+          }
+
+          // If subject didn't help, pick the most recently contacted record
+          if (!matchedDoc) {
+            let mostRecent = emailSnapshot.docs[0];
+            let mostRecentTime = 0;
+            for (const doc of emailSnapshot.docs) {
+              const data = doc.data();
+              const contactedAt = data.contactedAt ? data.contactedAt.toMillis() : 0;
+              if (contactedAt > mostRecentTime) {
+                mostRecentTime = contactedAt;
+                mostRecent = doc;
+              }
+            }
+            matchedDoc = mostRecent;
+            matchMethod = 'email-mostRecent';
+            console.log(`Inbound: Disambiguated by recency — matched to ${mostRecent.data().shopName}`);
+          }
+        }
+      }
+
+      // Also check if sender appears in any record's contacts array (multi-contact shops)
+      if (!matchedDoc) {
+        const allOutreach = await outreachRef.get();
+        for (const doc of allOutreach.docs) {
+          const data = doc.data();
+          const contacts = data.contacts || [];
+          if (contacts.some(c => (c.email || '').toLowerCase() === senderEmail)) {
+            matchedDoc = doc;
+            matchMethod = 'email-contacts-array';
+            console.log(`Inbound: Matched via contacts array for ${data.shopName}`);
+            break;
+          }
+        }
+      }
+    }
+
+    // --- Strategy 3: Subject-line match (handles CCs, forwards, new sender) ---
+    if (!matchedDoc && subject) {
       console.log(`Inbound: No email match for ${senderEmail}, trying subject-line match...`);
       const allOutreach = await outreachRef.get();
       for (const doc of allOutreach.docs) {
         const data = doc.data();
         const shopName = (data.shopName || '').toLowerCase();
         const subjectLower = (subject || '').toLowerCase();
-        // Match if the subject contains the shop name (works for Re:, Fwd:, etc.)
         if (shopName && shopName.length > 3 && subjectLower.includes(shopName)) {
-          snapshot = { empty: false, docs: [doc] };
+          matchedDoc = doc;
+          matchMethod = 'subject-shopName';
           console.log(`Inbound: Subject-line match! "${subject}" matched to ${data.shopName}`);
           break;
         }
       }
-      // If subject match found, snapshot is now a mock object — normalize it
-      if (snapshot.empty === undefined) snapshot = { empty: true, docs: [] };
     }
+
+    // Build a snapshot-like result for the rest of the code
+    const snapshot = matchedDoc
+      ? { empty: false, docs: [matchedDoc] }
+      : { empty: true, docs: [] };
 
     if (snapshot.empty) {
       // Unknown sender — could be spam, a subscriber question, etc.
@@ -310,9 +424,39 @@ module.exports = async function handler(req, res) {
       updateData.respondedAt = require('firebase-admin').firestore.FieldValue.serverTimestamp();
     }
 
+    // Bug 3 fix: Auto-extract redirected emails and store as contacts
+    if (replyHints.extractedEmails && replyHints.extractedEmails.length > 0) {
+      const existingContacts = outreachData.contacts || [];
+      const existingEmails = new Set(existingContacts.map(c => (c.email || '').toLowerCase()));
+      // Also exclude the current contactEmail
+      existingEmails.add((outreachData.contactEmail || '').toLowerCase());
+
+      const newContacts = replyHints.extractedEmails
+        .filter(e => !existingEmails.has(e))
+        .map(e => ({
+          email: e,
+          name: null,  // We don't always know the name from the redirect text
+          role: 'owner',  // Gatekeepers usually redirect to the owner
+          source: 'auto-extracted-from-reply',
+          priority: 1,  // Higher priority than the gatekeeper
+          attempted: false,
+          responseType: null
+        }));
+
+      if (newContacts.length > 0) {
+        updateData.contacts = [...existingContacts, ...newContacts];
+        console.log(`Inbound: Auto-extracted ${newContacts.length} new contact(s): ${newContacts.map(c => c.email).join(', ')}`);
+      }
+    }
+
+    // Log match method for debugging
+    if (matchMethod) {
+      updateData.lastMatchMethod = matchMethod;
+    }
+
     await outreachDoc.ref.update(updateData);
 
-    console.log(`Inbound: Matched ${senderEmail} to ${shopName}, ${currentStatus} → ${newStatus}`);
+    console.log(`Inbound: Matched ${senderEmail} to ${shopName} via [${matchMethod}], ${currentStatus} → ${newStatus}`);
 
     // Notify Ivan
     await notifyIvan(firestore, {
