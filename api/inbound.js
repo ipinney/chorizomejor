@@ -265,6 +265,8 @@ module.exports = async function handler(req, res) {
     const replyHints = classifyReply(textBody, senderEmail, outreachData.contactEmail);
 
     // Build the reply record
+    // Note: FieldValue.serverTimestamp() cannot be used inside arrays in Firestore,
+    // so we use a regular Date for array entries. Top-level fields can use serverTimestamp().
     const reply = {
       from: senderEmail,
       fromName: senderName || null,
@@ -273,7 +275,7 @@ module.exports = async function handler(req, res) {
       hasAttachments: numAttachments > 0,
       attachmentCount: numAttachments,
       hints: replyHints,
-      receivedAt: require('firebase-admin').firestore.FieldValue.serverTimestamp()
+      receivedAt: new Date().toISOString()
     };
 
     // Update the outreach document
