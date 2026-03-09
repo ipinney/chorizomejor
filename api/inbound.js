@@ -178,6 +178,17 @@ module.exports = async function handler(req, res) {
       Array.isArray(fields.attachments) ? fields.attachments[0] : fields.attachments || '0'
     );
 
+    // Extract email headers for threading — SendGrid sends a raw headers string
+    const headersRaw = Array.isArray(fields.headers) ? fields.headers[0] : fields.headers;
+    let inboundMessageId = null;
+    let inboundReferences = null;
+    if (headersRaw) {
+      const midMatch = headersRaw.match(/^Message-ID:\s*(.+)$/mi);
+      if (midMatch) inboundMessageId = midMatch[1].trim();
+      const refMatch = headersRaw.match(/^References:\s*(.+)$/mi);
+      if (refMatch) inboundReferences = refMatch[1].trim();
+    }
+
     const senderEmail = extractEmail(fromRaw);
     const senderName = extractName(fromRaw);
 
@@ -275,6 +286,7 @@ module.exports = async function handler(req, res) {
       hasAttachments: numAttachments > 0,
       attachmentCount: numAttachments,
       hints: replyHints,
+      messageId: inboundMessageId || null,  // For threading replies
       receivedAt: new Date().toISOString()
     };
 
@@ -283,6 +295,11 @@ module.exports = async function handler(req, res) {
       status: newStatus,
       lastReplyAt: require('firebase-admin').firestore.FieldValue.serverTimestamp()
     };
+
+    // Store threading info at document level for easy access when replying
+    if (inboundMessageId) {
+      updateData.lastInboundMessageId = inboundMessageId;
+    }
 
     // Append to replies array
     const existingReplies = outreachData.replies || [];
