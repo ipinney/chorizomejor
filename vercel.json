@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/639752825b7040eba9e981334a4774a7.txt", "destination": "/api/indexnow" },
     { "source": "/story/:slug", "destination": "/api/og?slug=:slug" },
     { "source": "/place/:id", "destination": "/api/og?type=place&id=:id" },
     { "source": "/explore", "destination": "/api/og?page=explore" },
