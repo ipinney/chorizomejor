@@ -1,7 +1,12 @@
 {
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/story/:slug", "destination": "/api/og?slug=:slug" },
-    { "source": "/place/:id", "destination": "/api/og?type=place&id=:id" }
+    { "source": "/place/:id", "destination": "/api/og?type=place&id=:id" },
+    { "source": "/explore", "destination": "/api/og?page=explore" },
+    { "source": "/leaderboard", "destination": "/api/og?page=leaderboard" },
+    { "source": "/stories", "destination": "/api/og?page=stories" },
+    { "source": "/toty", "destination": "/api/og?page=toty" }
   ],
   "headers": [
     {

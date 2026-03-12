@@ -253,6 +253,142 @@ document.addEventListener('DOMContentLoaded', () => {
   startTotyCountdown();
 });
 
+// ===================== SEO ENGINE =====================
+const SEO_SITE = 'https://www.chorizomejor.com';
+
+function updateSEO({ title, description, canonical, jsonLd }) {
+  // Dynamic document title
+  document.title = title || 'Chorizo Mejor - Houston\'s Best Breakfast Tacos';
+
+  // Meta description
+  let metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) {
+    metaDesc.setAttribute('content', description || 'Chorizo Mejor - Houston\'s #1 Breakfast Taco Rating App. Rate, review, and discover the best tacos in H-Town.');
+  }
+
+  // Canonical URL
+  let link = document.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.setAttribute('rel', 'canonical');
+    document.head.appendChild(link);
+  }
+  link.setAttribute('href', canonical || SEO_SITE);
+
+  // Open Graph updates
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute('content', title || 'Chorizo Mejor - Houston\'s Best Breakfast Tacos');
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if (ogDesc) ogDesc.setAttribute('content', description || 'Rate, review, and discover the best breakfast tacos in Houston.');
+  const ogUrl = document.querySelector('meta[property="og:url"]');
+  if (ogUrl) ogUrl.setAttribute('content', canonical || SEO_SITE);
+
+  // JSON-LD structured data
+  let scriptTag = document.getElementById('seo-jsonld');
+  if (!scriptTag) {
+    scriptTag = document.createElement('script');
+    scriptTag.id = 'seo-jsonld';
+    scriptTag.type = 'application/ld+json';
+    document.head.appendChild(scriptTag);
+  }
+  if (jsonLd) {
+    scriptTag.textContent = JSON.stringify(jsonLd);
+  } else {
+    // Default WebSite schema
+    scriptTag.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      'name': 'Chorizo Mejor',
+      'url': SEO_SITE,
+      'description': 'Houston\'s #1 breakfast taco rating and review community.',
+      'potentialAction': {
+        '@type': 'SearchAction',
+        'target': SEO_SITE + '/#/explore?q={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    });
+  }
+}
+
+function seoForPlace(place, placeId) {
+  const name = place.name || 'Taco Spot';
+  const hood = formatNeighborhood(place.neighborhood);
+  const rating = place.avgOverall ? place.avgOverall.toFixed(1) : null;
+  const desc = rating
+    ? `${name} in ${hood} — rated ${rating}/5 on Chorizo Mejor. ${place.reviewCount || 0} community reviews for tortilla, protein, salsa & value.`
+    : `${name} in ${hood} — rate and review breakfast tacos on Chorizo Mejor.`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Restaurant',
+    'name': name,
+    'address': {
+      '@type': 'PostalAddress',
+      'streetAddress': place.address || '',
+      'addressLocality': 'Houston',
+      'addressRegion': 'TX'
+    },
+    'servesCuisine': 'Mexican, Breakfast Tacos',
+    'url': `${SEO_SITE}/#/place/${placeId}`
+  };
+
+  if (place.lat && place.lng) {
+    jsonLd.geo = { '@type': 'GeoCoordinates', 'latitude': place.lat, 'longitude': place.lng };
+  }
+  if (rating) {
+    jsonLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      'ratingValue': rating,
+      'bestRating': '5',
+      'worstRating': '1',
+      'ratingCount': String(place.reviewCount || 0)
+    };
+  }
+  if (place.phone) jsonLd.telephone = place.phone;
+  if (place.websiteURL) jsonLd.sameAs = place.websiteURL;
+
+  updateSEO({
+    title: `${name} — Breakfast Taco Reviews | Chorizo Mejor`,
+    description: desc,
+    canonical: `${SEO_SITE}/#/place/${placeId}`,
+    jsonLd
+  });
+}
+
+function seoForStory(story, slug) {
+  const title = story.title || 'Beto\'s Table';
+  const author = story.author || 'Beto Garza';
+  const excerpt = story.excerpt || `A Beto's Table article on Chorizo Mejor.`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    'headline': title,
+    'author': { '@type': 'Person', 'name': author },
+    'publisher': {
+      '@type': 'Organization',
+      'name': 'Chorizo Mejor',
+      'url': SEO_SITE
+    },
+    'description': excerpt,
+    'url': `${SEO_SITE}/#/story/${slug}`,
+    'mainEntityOfPage': `${SEO_SITE}/#/story/${slug}`
+  };
+  if (story.publishedAt && story.publishedAt.toDate) {
+    jsonLd.datePublished = story.publishedAt.toDate().toISOString();
+  }
+  if (story.heroImage) {
+    jsonLd.image = story.heroImage;
+  }
+
+  updateSEO({
+    title: `${title} | Beto's Table — Chorizo Mejor`,
+    description: excerpt,
+    canonical: `${SEO_SITE}/#/story/${slug}`,
+    jsonLd
+  });
+}
+
 // ===================== ROUTING =====================
 function navigate(view, id) {
   if (view === 'profile' && !id && !currentUser) {
@@ -286,10 +422,28 @@ function handleRoute() {
     case 'feed':
       showView('view-feed');
       loadFeed();
+      updateSEO({
+        title: 'Chorizo Mejor — Houston\'s Best Breakfast Tacos',
+        description: 'Rate, review, and discover the best breakfast tacos in Houston. Community-powered ratings for tortilla, protein, salsa & value.',
+        canonical: SEO_SITE
+      });
       break;
     case 'explore':
       showView('view-explore');
       loadPlaces();
+      updateSEO({
+        title: 'Explore Houston Taco Spots | Chorizo Mejor',
+        description: 'Browse 160+ breakfast taco spots across Houston. Filter by neighborhood, rating, and more. Find your next favorite taco.',
+        canonical: SEO_SITE + '/#/explore',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          'name': 'Houston Breakfast Taco Spots',
+          'description': 'Community-rated breakfast taco restaurants, trucks, and stands in Houston, TX.',
+          'url': SEO_SITE + '/#/explore',
+          'numberOfItems': '160+'
+        }
+      });
       // Track map exploration for onboarding
       if (currentUser) {
         db.collection('users').doc(currentUser.uid).update({ exploredMap: true }).catch(() => {});
@@ -298,10 +452,20 @@ function handleRoute() {
     case 'leaderboard':
       showView('view-leaderboard');
       loadLeaderboard();
+      updateSEO({
+        title: 'Best Breakfast Tacos in Houston — Leaderboard | Chorizo Mejor',
+        description: 'See which Houston taco spots rank highest for overall quality, tortilla, protein, salsa, and value. Updated daily.',
+        canonical: SEO_SITE + '/#/leaderboard'
+      });
       break;
     case 'toty':
       showView('view-toty');
       loadTotyLeaders();
+      updateSEO({
+        title: '2026 Taco of the Year — Houston\'s Best Taco Award | Chorizo Mejor',
+        description: 'Vote for Houston\'s 2026 Taco of the Year. Categories: Best Overall, Best Tortilla, Best Protein, Best Salsa, Best Value, Best Newcomer.',
+        canonical: SEO_SITE + '/#/toty'
+      });
       break;
     case 'profile':
       showView('view-profile');
@@ -310,25 +474,52 @@ function handleRoute() {
     case 'place':
       showView('view-place');
       if (id) loadPlaceDetail(id);
+      // seoForPlace() is called inside loadPlaceDetail after data loads
       break;
     case 'stories':
       showView('view-stories');
       loadStories();
+      updateSEO({
+        title: 'Beto\'s Table — Houston Taco Stories | Chorizo Mejor',
+        description: 'Weekly longform stories about Houston\'s best taco spots, the people behind the counter, and the tacos that define this city. By Beto "El Gordo" Garza.',
+        canonical: SEO_SITE + '/#/stories',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Blog',
+          'name': 'Beto\'s Table',
+          'description': 'Weekly taco shop spotlights by Beto Garza on Chorizo Mejor.',
+          'url': SEO_SITE + '/#/stories',
+          'author': { '@type': 'Person', 'name': 'Beto Garza' },
+          'publisher': { '@type': 'Organization', 'name': 'Chorizo Mejor', 'url': SEO_SITE }
+        }
+      });
       break;
     case 'story':
       showView('view-story');
       if (id) loadStoryDetail(id);
+      // seoForStory() is called inside loadStoryDetail after data loads
       break;
     case 'philosophy':
       showView('view-philosophy');
       loadPhilosophy();
+      updateSEO({
+        title: 'Our Rating Philosophy | Chorizo Mejor',
+        description: 'How Chorizo Mejor rates breakfast tacos: tortilla, protein, salsa, and value. No paid placements — just honest community reviews.',
+        canonical: SEO_SITE + '/#/philosophy'
+      });
       break;
     case 'auth':
       showView('view-auth');
+      updateSEO({
+        title: 'Sign In | Chorizo Mejor',
+        description: 'Join Houston\'s breakfast taco community. Rate, review, and discover the best tacos in H-Town.',
+        canonical: SEO_SITE + '/#/auth'
+      });
       break;
     default:
       showView('view-feed');
       loadFeed();
+      updateSEO({});
   }
 }
 
@@ -1166,6 +1357,9 @@ async function loadPlaceDetail(placeId) {
     }
 
     const place = doc.data();
+
+    // Update SEO meta tags and structured data for this place
+    seoForPlace(place, placeId);
 
     document.getElementById('place-name').textContent = place.name;
     document.getElementById('place-address-detail').textContent = place.address || '';
@@ -3343,6 +3537,10 @@ async function loadStoryDetail(slug) {
     }
 
     const s = doc.data();
+
+    // Update SEO meta tags and structured data for this story
+    seoForStory(s, slug);
+
     const date = s.publishedAt?.toDate ? s.publishedAt.toDate() : new Date(s.publishedAt);
     const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
