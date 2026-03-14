@@ -1,5 +1,19 @@
 rules_version = '2';
 
+// =========================================================================
+// CANONICAL FIRESTORE RULES — chorizomejor-app (shared Firebase project)
+// =========================================================================
+// This file is the SINGLE SOURCE OF TRUTH for Firestore security rules.
+// It covers BOTH apps that share this Firebase project:
+//   1. Chorizo Mejor (taco rating PWA) — chorizomejor.com
+//   2. NAW Games (kids' game arcade)   — nawgames.com
+//
+// ⚠️  WARNING: Do NOT deploy partial rules for one app — you will WIPE
+//     the other app's rules. Always deploy THIS COMPLETE FILE.
+//
+// Deploy via: Firebase Console → Firestore → Rules tab → paste → Publish
+// =========================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -10,6 +24,10 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
     }
 
     // Only allow specific fields to be changed
@@ -164,6 +182,19 @@ service cloud.firestore {
     match /inbound_emails/{emailId} {
       allow read, write: if isSignedIn()
         && request.auth.uid == 'zy8WSqtL3GUuyw89u1X1ZzENULP2';
+    }
+
+    // =====================================================================
+    // NAW GAMES COLLECTIONS (nawgames.com — shares this Firebase project)
+    // =====================================================================
+
+    // --- Game Requests (kids submit game ideas) ---
+    match /game_requests/{requestId} {
+      // Any signed-in user can submit a game request
+      allow create: if isSignedIn();
+
+      // Admin has full access (review, approve, delete)
+      allow read, write: if isAdmin();
     }
 
     // --- Catch-all: deny everything else ---
