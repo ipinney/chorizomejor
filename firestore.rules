@@ -82,6 +82,7 @@ service cloud.firestore {
                          'imageURL', 'websiteURL', 'yelpURL', 'googleMapsURL',
                          'orderURL', 'phone', 'photoURL', 'googleRating',
                          'googleReviewCount', 'googlePhotoURL',
+                         'instagramURL', 'facebookURL', 'scheduleURL',
                          'lat', 'lng', 'address', 'neighborhood',
                          'status', 'addedByName']);
 

@@ -345,7 +345,8 @@ function seoForPlace(place, placeId) {
     };
   }
   if (place.phone) jsonLd.telephone = place.phone;
-  if (place.websiteURL) jsonLd.sameAs = place.websiteURL;
+  const sameAs = [place.websiteURL, place.instagramURL, place.facebookURL].filter(Boolean);
+  if (sameAs.length) jsonLd.sameAs = sameAs.length === 1 ? sameAs[0] : sameAs;
 
   updateSEO({
     title: `${name} — Breakfast Taco Reviews | Chorizo Mejor`,
@@ -1532,6 +1533,18 @@ async function loadPlaceDetail(placeId) {
     // Call
     if (place.phone) {
       buttons.push(`<a class="place-link-btn" href="tel:${escapeHtml(place.phone)}" ><span class="link-icon">📞</span> Call</a>`);
+    }
+    // Instagram
+    if (place.instagramURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.instagramURL)}" target="_blank" rel="noopener"><span class="link-icon">📸</span> Instagram</a>`);
+    }
+    // Facebook
+    if (place.facebookURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.facebookURL)}" target="_blank" rel="noopener"><span class="link-icon">📘</span> Facebook</a>`);
+    }
+    // Schedule / Find the Truck
+    if (place.scheduleURL) {
+      buttons.push(`<a class="place-link-btn" href="${escapeHtml(place.scheduleURL)}" target="_blank" rel="noopener"><span class="link-icon">📅</span> Find Location</a>`);
     }
     // Yelp — branded static link (no live rating due to API cost)
     if (place.yelpURL) {

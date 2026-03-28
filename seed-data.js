@@ -23,27 +23,27 @@ const HOUSTON_TACO_SPOTS = [
   { name: "Cochinita & Co", address: "5420 Lawndale St #500, Houston, TX 77023", neighborhood: "east-end", type: "restaurant", lat: 29.7368, lng: -95.3218 },
   { name: "Tacos La Sultana", address: "7011 Capitol St, Houston, TX 77011", neighborhood: "east-end", type: "truck", lat: 29.7346, lng: -95.3023 },
   { name: "Taconmadre", address: "610 Crown St, Houston, TX 77020", neighborhood: "east-end", type: "truck", lat: 29.7784, lng: -95.2935 },
-  { name: "Gerardo's Drive-In", address: "4702 Telephone Rd, Houston, TX 77087", neighborhood: "east-end", type: "restaurant", lat: 29.7130, lng: -95.3296 },
+  { name: "Gerardo's Drive-In", address: "609 Patton St, Houston, TX 77009", neighborhood: "northside", type: "restaurant", lat: 29.7960, lng: -95.3710 },
 
   // === EADO ===
   { name: "Taqueria Los Munecos", address: "2711 Harrisburg Blvd, Houston, TX 77003", neighborhood: "eado", type: "restaurant", lat: 29.7455, lng: -95.3447 },
   { name: "Asados Don Pancho", address: "2500 Navigation Blvd, Houston, TX 77003", neighborhood: "eado", type: "truck", lat: 29.7544, lng: -95.3510 },
   { name: "Emma's Kitchen", address: "2117 Chenevert St Suite M, Houston, TX 77003", neighborhood: "eado", type: "restaurant", lat: 29.7439, lng: -95.3646 },
-  { name: "El Taco Rico Aracely", address: "2117 Chenevert St, Houston, TX 77003", neighborhood: "eado", type: "truck", lat: 29.7458, lng: -95.3578 },
+  { name: "El Taco Rico Aracely", address: "1607 Hutchins St, Houston, TX 77003", neighborhood: "eado", type: "truck", lat: 29.7450, lng: -95.3570 },
   { name: "Tacos Eliza", address: "902 St Emanuel St, Houston, TX 77003", neighborhood: "eado", type: "truck", lat: 29.7521, lng: -95.3552 },
 
   // === THE HEIGHTS ===
   { name: "Tacos Tierra Caliente (Heights)", address: "1100 N Shepherd Dr, Houston, TX 77008", neighborhood: "heights", type: "truck", lat: 29.7864, lng: -95.4104 },
   { name: "Tlahuac Taqueria", address: "1402 N Shepherd Dr, Houston, TX 77008", neighborhood: "heights", type: "restaurant", lat: 29.7917, lng: -95.4107 },
-  { name: "Tacos La Bala", address: "1920 Silver St, Houston, TX 77007", neighborhood: "heights", type: "truck", lat: 29.7748, lng: -95.3970 },
-  { name: "El Ultimo Taco Truck", address: "1302 N Shepherd Dr, Houston, TX 77008", neighborhood: "heights", type: "truck", lat: 29.7903, lng: -95.4104 },
+  { name: "Tacos La Bala", address: "5800 Bellaire Blvd, Houston, TX 77081", neighborhood: "bellaire", type: "restaurant", lat: 29.7060, lng: -95.4895 },
+  { name: "El Ultimo Taco Truck", address: "7645 Long Point Rd, Houston, TX 77055 (mobile)", neighborhood: "spring-branch", type: "truck", lat: 29.8065, lng: -95.5000 },
   { name: "Tacos A Go Go (Heights)", address: "2912 White Oak Dr, Houston, TX 77007", neighborhood: "heights", type: "restaurant", lat: 29.7740, lng: -95.3960 },
   { name: "Chilosos Taco House", address: "701 E 20th St, Houston, TX 77008", neighborhood: "heights", type: "restaurant", lat: 29.8044, lng: -95.3909 },
   { name: "La Cocina de TJ (Birria y Mas)", address: "2025 N Durham Dr, Houston, TX 77008", neighborhood: "heights", type: "restaurant", lat: 29.8045, lng: -95.4126 },
   { name: "The Taco Stand", address: "2018 N Shepherd Dr, Houston, TX 77008", neighborhood: "heights", type: "restaurant", lat: 29.8046, lng: -95.4099 },
-  { name: "La Chingada Tacos & Tequila", address: "2533 Ella Blvd, Houston, TX 77008", neighborhood: "heights", type: "restaurant", lat: 29.8050, lng: -95.4190 },
-  { name: "Ema", address: "1919 N Shepherd Dr, Houston, TX 77008", neighborhood: "heights", type: "bakery", lat: 29.8030, lng: -95.4102 },
-  { name: "Dichos Taqueria", address: "3318 Ella Blvd, Houston, TX 77018", neighborhood: "heights", type: "truck", lat: 29.8141, lng: -95.4191 },
+  { name: "La Chingada Tacos & Tequila", address: "1402 Northwood St, Houston, TX 77009", neighborhood: "heights", type: "restaurant", lat: 29.8015, lng: -95.3895 },
+  { name: "Ema", address: "5307 N Main St Suite 100, Houston, TX 77009", neighborhood: "northside", type: "bakery", lat: 29.8105, lng: -95.3892 },
+  { name: "Dichos Taqueria", address: "614 S Wayside Dr, Suite 101, Houston, TX 77011", neighborhood: "east-end", type: "restaurant", lat: 29.7470, lng: -95.3135 },
 
   // === MONTROSE ===
   { name: "Laredo Taqueria (Montrose)", address: "1606 Montrose Blvd, Houston, TX 77006", neighborhood: "montrose", type: "restaurant", lat: 29.7469, lng: -95.3935 },
@@ -55,11 +55,11 @@ const HOUSTON_TACO_SPOTS = [
   { name: "The Pit Room", address: "1201 Richmond Ave, Houston, TX 77006", neighborhood: "montrose", type: "restaurant", lat: 29.7370, lng: -95.3897 },
   { name: "La Mexicana Restaurant", address: "1018 Fairview St, Houston, TX 77006", neighborhood: "montrose", type: "restaurant", lat: 29.7475, lng: -95.3888 },
   { name: "Tacos Laguna", address: "301 W Alabama St, Houston, TX 77006", neighborhood: "montrose", type: "truck", lat: 29.7387, lng: -95.3838 },
-  { name: "Delicias Maya", address: "4720 Montrose Blvd, Houston, TX 77006", neighborhood: "montrose", type: "truck", lat: 29.7349, lng: -95.3925 },
+  { name: "Delicias Maya", address: "729 Studewood St, Houston, TX 77007", neighborhood: "heights", type: "truck", lat: 29.7738, lng: -95.3998 },
 
   // === MIDTOWN ===
   { name: "Tacos A Go Go (Midtown)", address: "3704 Main St, Houston, TX 77002", neighborhood: "midtown", type: "restaurant", lat: 29.7384, lng: -95.3799 },
-  { name: "Velvet Taco", address: "2407 Main St, Houston, TX 77002", neighborhood: "midtown", type: "restaurant", lat: 29.7450, lng: -95.3822 },
+  { name: "Velvet Taco", address: "907 Westheimer Rd, Houston, TX 77006", neighborhood: "montrose", type: "restaurant", lat: 29.7431, lng: -95.3882 },
   { name: "La Calle Tacos (Midtown)", address: "401 Gray St, Houston, TX 77002", neighborhood: "midtown", type: "restaurant", lat: 29.7519, lng: -95.3764 },
   { name: "Luna y Sol", address: "2808 Milam St, Houston, TX 77006", neighborhood: "midtown", type: "restaurant", lat: 29.7411, lng: -95.3810 },
 
@@ -68,7 +68,7 @@ const HOUSTON_TACO_SPOTS = [
   { name: "La Calle Tacos (Downtown)", address: "909 Franklin St, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7635, lng: -95.3607 },
   { name: "Space City Birria", address: "415 Milam St, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7619, lng: -95.3634 },
   { name: "La Taquiza Street Tacos", address: "800 Capitol St, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7595, lng: -95.3650 },
-  { name: "Papalo Taqueria", address: "910 Louisiana St M140, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7564, lng: -95.3642 },
+  { name: "Papalo Taqueria", address: "712 Main St, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7564, lng: -95.3642 },
   { name: "Lone Star Taco Co.", address: "1001 Texas St Suite 100, Houston, TX 77002", neighborhood: "downtown", type: "restaurant", lat: 29.7575, lng: -95.3623 },
 
   // === WASHINGTON AVE ===
@@ -96,7 +96,7 @@ const HOUSTON_TACO_SPOTS = [
   { name: "La Tapatia (Richmond)", address: "5591 Richmond Ave, Houston, TX 77056", neighborhood: "galleria", type: "restaurant", lat: 29.7309, lng: -95.4763 },
 
   // === SPRING BRANCH ===
-  { name: "Tacos Dona Lena", address: "7725 Long Point Rd, Houston, TX 77055", neighborhood: "spring-branch", type: "truck", lat: 29.8069, lng: -95.5015 },
+  { name: "Tacos Dona Lena", address: "8788 Hammerly Blvd, Houston, TX 77080", neighborhood: "spring-branch", type: "restaurant", lat: 29.7927, lng: -95.5130 },
   { name: "Taqueria Laredo", address: "6606 Long Point Rd, Houston, TX 77055", neighborhood: "spring-branch", type: "restaurant", lat: 29.8027, lng: -95.4883 },
   { name: "Tacos El Gordo", address: "7720 Long Point Rd, Houston, TX 77055", neighborhood: "spring-branch", type: "truck", lat: 29.8069, lng: -95.5024 },
   { name: "Pupusas & Tacos Dona Maria", address: "8220 Long Point Rd, Houston, TX 77055", neighborhood: "spring-branch", type: "restaurant", lat: 29.8090, lng: -95.5105 },
@@ -114,7 +114,7 @@ const HOUSTON_TACO_SPOTS = [
   { name: "La Tapatia Taqueria", address: "614 S Mason Rd, Katy, TX 77450", neighborhood: "katy", type: "restaurant", lat: 29.7755, lng: -95.7294 },
 
   // === SUGAR LAND ===
-  { name: "Torchy's Tacos (Sugar Land)", address: "16535 Southwest Fwy, Sugar Land, TX 77479", neighborhood: "sugar-land", type: "restaurant", lat: 29.5977, lng: -95.6198 },
+  { name: "Torchy's Tacos (Sugar Land)", address: "15810 Southwest Fwy Ste 600, Sugar Land, TX 77478", neighborhood: "sugar-land", type: "restaurant", lat: 29.5977, lng: -95.6198 },
 
   // === SPRING ===
   { name: "Sunrise Taquitos", address: "710 Rayford Rd, Spring, TX 77386", neighborhood: "spring", type: "restaurant", lat: 30.0837, lng: -95.4110 },
