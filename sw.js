@@ -3,7 +3,7 @@
  * Provides offline caching and fast load times
  */
 
-const CACHE_NAME = 'chorizo-mejor-v50';
+const CACHE_NAME = 'chorizo-mejor-v51';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -48,6 +48,7 @@ self.addEventListener('fetch', event => {
   if (url.hostname.includes('firebaseio.com') ||
       url.hostname.includes('googleapis.com') ||
       url.hostname.includes('gstatic.com') ||
+      url.hostname.includes('google.com') ||
       url.hostname.includes('firestore.googleapis.com') ||
       url.hostname.includes('firebasestorage.googleapis.com') ||
       url.hostname.includes('identitytoolkit.googleapis.com') ||
